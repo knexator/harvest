@@ -4,8 +4,8 @@ var __getOwnPropDesc = Object.getOwnPropertyDescriptor;
 var __getOwnPropNames = Object.getOwnPropertyNames;
 var __getProtoOf = Object.getPrototypeOf;
 var __hasOwnProp = Object.prototype.hasOwnProperty;
-var __commonJS = (cb, mod) => function __require() {
-  return mod || (0, cb[__getOwnPropNames(cb)[0]])((mod = { exports: {} }).exports, mod), mod.exports;
+var __commonJS = (cb, mod2) => function __require() {
+  return mod2 || (0, cb[__getOwnPropNames(cb)[0]])((mod2 = { exports: {} }).exports, mod2), mod2.exports;
 };
 var __copyProps = (to, from, except, desc) => {
   if (from && typeof from === "object" || typeof from === "function") {
@@ -15,9 +15,9 @@ var __copyProps = (to, from, except, desc) => {
   }
   return to;
 };
-var __toESM = (mod, isNodeMode, target) => (target = mod != null ? __create(__getProtoOf(mod)) : {}, __copyProps(
-  isNodeMode || !mod || !mod.__esModule ? __defProp(target, "default", { value: mod, enumerable: true }) : target,
-  mod
+var __toESM = (mod2, isNodeMode, target) => (target = mod2 != null ? __create(__getProtoOf(mod2)) : {}, __copyProps(
+  isNodeMode || !mod2 || !mod2.__esModule ? __defProp(target, "default", { value: mod2, enumerable: true }) : target,
+  mod2
 ));
 
 // ../Shaku/lib/manager.js
@@ -10636,9 +10636,24 @@ var cursor_grabbed = await import_shaku.default.assets.loadTexture("imgs/hand_cl
 var hole_texture = await import_shaku.default.assets.loadTexture("imgs/soil_00.png");
 var crate_texture = await import_shaku.default.assets.loadTexture("imgs/crate_base.png");
 var board = Grid2D.init(CONFIG.board_w, CONFIG.board_h, (i, j) => null);
-var veg_hand = [];
+var crate_pos = new import_vector2.default(0, 0);
+{
+  let original_crate_card = {
+    type: "crate",
+    sprite: new import_sprites_group.default(),
+    count: 4
+  };
+  let asdf = new import_sprite.default(import_shaku.default.gfx.whiteTexture);
+  asdf.size.set(CONFIG.card_w * 0.9 / CONFIG.pixel_scaling, CONFIG.card_h * 0.9 / CONFIG.pixel_scaling);
+  original_crate_card.sprite.add(asdf);
+  original_crate_card.sprite.add(new import_sprite.default(crate_texture));
+  original_crate_card.sprite.scale.mulSelf(CONFIG.pixel_scaling);
+  original_crate_card.sprite.position.set(CONFIG.board_x + CONFIG.card_w * crate_pos.x, CONFIG.board_y + CONFIG.card_h * crate_pos.y);
+  board.setV(crate_pos, original_crate_card);
+}
+var hand = [];
 for (let k = 0; k < CONFIG.veg_hand_size; k++) {
-  addVegCard();
+  addCard();
 }
 var points = 0;
 var hovering_card = null;
@@ -10656,7 +10671,7 @@ for (let k = 0; k < 10; k++) {
   cur._sprites.forEach((spr) => spr.position.addSelf(1, 1));
   numbers.push(cur);
 }
-var directions = [import_vector2.default.right, import_vector2.default.down, import_vector2.default.left, import_vector2.default.up];
+var DIRS = [import_vector2.default.right, import_vector2.default.down, import_vector2.default.left, import_vector2.default.up];
 var pixel_effect = import_shaku.default.gfx.createEffect(PixelEffect);
 var cursor_default_spr = new import_sprite.default(cursor_default);
 cursor_default_spr.origin = import_vector2.default.zero;
@@ -10673,8 +10688,33 @@ var background_color = import_color.default.fromHex("#E4A672");
 function baseCardPos(index) {
   return new import_vector2.default(CONFIG.card_x, CONFIG.board_y + CONFIG.card_h * index);
 }
+function addCard() {
+  if (Math.random() < 0.99 && hand.every((x) => x.type !== "crate")) {
+    addCrateCard();
+  } else {
+    addVegCard();
+  }
+}
+function addCrateCard() {
+  let new_crate_card = {
+    type: "crate",
+    sprite: new import_sprites_group.default(),
+    count: 1 + mod(board.getV(crate_pos).count - 2, CONFIG.max_count)
+  };
+  let asdf = new import_sprite.default(import_shaku.default.gfx.whiteTexture);
+  asdf.size.set(CONFIG.card_w * 0.9 / CONFIG.pixel_scaling, CONFIG.card_h * 0.9 / CONFIG.pixel_scaling);
+  new_crate_card.sprite.add(asdf);
+  new_crate_card.sprite.add(new import_sprite.default(crate_texture));
+  new_crate_card.sprite.scale.mulSelf(CONFIG.pixel_scaling);
+  new_crate_card.sprite.position.set(import_shaku.default.gfx.canvas.width / 2, import_shaku.default.gfx.canvas.height * 1.25);
+  new import_animator.default(new_crate_card.sprite).to({
+    "position": baseCardPos(hand.length)
+  }).duration(0.2).play();
+  hand.push(new_crate_card);
+}
 function addVegCard() {
   let new_veg_card = {
+    type: "veg",
     vegetable: randomVeg(),
     count: randint(CONFIG.max_count) + 1,
     sprite: new import_sprites_group.default()
@@ -10686,9 +10726,9 @@ function addVegCard() {
   new_veg_card.sprite.scale.mulSelf(CONFIG.pixel_scaling);
   new_veg_card.sprite.position.set(import_shaku.default.gfx.canvas.width / 2, import_shaku.default.gfx.canvas.height * 1.25);
   new import_animator.default(new_veg_card.sprite).to({
-    "position": baseCardPos(veg_hand.length)
+    "position": baseCardPos(hand.length)
   }).duration(0.2).play();
-  veg_hand.push(new_veg_card);
+  hand.push(new_veg_card);
 }
 function posOverCard(pos, card) {
   return Math.abs(pos.x - card.sprite.position.x) < CONFIG.card_w * 0.45 && Math.abs(pos.y - card.sprite.position.y) < CONFIG.card_h * 0.45;
@@ -10701,28 +10741,62 @@ function tileUnderPos(pos) {
   return new import_vector2.default(i, j);
 }
 function onPlaceCard(pos) {
-  let connected_group = connectedGroup(pos);
-  if (connected_group.length > 1) {
-    points += connected_group.length;
-    refreshPoints();
-    connected_group.forEach((p) => {
-      let tile = board.getV(p);
-      if (tile.count > 1) {
-        tile.count -= 1;
-        new import_animator.default(tile.sprite).from({ "rotation": Math.PI * 2 }).to({ "rotation": 0 }).duration(0.3).play();
-      } else {
-        board.setV(p, null);
+  let placed = board.getV(pos);
+  if (!placed)
+    throw new Error("couldn't get the card placed just now");
+  if (placed.type === "veg") {
+    let connected_group = connectedGroup(pos);
+    if (connected_group.length > 1) {
+      points += connected_group.length;
+      refreshPoints();
+      connected_group.forEach((p) => {
+        let tile = board.getV(p);
+        if (tile.count > 1) {
+          tile.count -= 1;
+          new import_animator.default(tile.sprite).from({ "rotation": Math.PI * 2 }).to({ "rotation": 0 }).duration(0.3).play();
+        } else {
+          new import_animator.default(tile.sprite).from({ "rotation": Math.PI * 2 }).to({ "rotation": 0 }).duration(0.3).play().then(() => {
+            board.setV(p, null);
+          });
+        }
+      });
+    }
+  } else if (placed.type === "crate") {
+    board.setV(crate_pos, null);
+    crate_pos = pos;
+    let delay = 0;
+    for (let k = 0; k < 4; k++) {
+      let cur_pos = pos.add(DIRS[k]);
+      let tile = board.getV(cur_pos, null);
+      if (tile && tile.count === placed.count) {
+        let connected_group = connectedGroup(cur_pos);
+        if (connected_group.length > 1) {
+          points += connected_group.length;
+          refreshPoints();
+          connected_group.forEach((p) => {
+            let tile2 = board.getV(p);
+            if (tile2.count > 1) {
+              tile2.count -= 1;
+              new import_animator.default(tile2.sprite).from({ "rotation": Math.PI * 2 }).to({ "rotation": 0 }).duration(0.3).delay(delay).play();
+            } else {
+              new import_animator.default(tile2.sprite).from({ "rotation": Math.PI * 2 }).to({ "rotation": 0 }).duration(0.3).delay(delay).play().then(() => {
+                board.setV(p, null);
+              });
+            }
+          });
+          delay += 0.5;
+        }
       }
-    });
+    }
   }
 }
 function refreshPoints() {
   points_spr = import_shaku.default.gfx.buildText(main_font, `Points: ${points}`, 20, import_color.default.black);
-  points_spr.position.set(50, import_shaku.default.gfx.canvas.height * 0.9);
+  points_spr.position.set(import_shaku.default.gfx.canvas.width * 0.75, import_shaku.default.gfx.canvas.height * 0.9);
 }
 function connectedGroup(pos) {
   let tile = board.getV(pos, false);
-  if (!tile)
+  if (!tile || tile.type !== "veg")
     return [];
   let group = [pos];
   let pending_expansion = [pos];
@@ -10730,12 +10804,12 @@ function connectedGroup(pos) {
   while (pending_expansion.length > 0) {
     let cur_pos = pending_expansion.shift();
     for (let k = 0; k < 4; k++) {
-      let cur_neigh_pos = cur_pos.add(directions[k]);
+      let cur_neigh_pos = cur_pos.add(DIRS[k]);
       if (considered.some((v) => v.equals(cur_neigh_pos)))
         continue;
       considered.push(cur_neigh_pos);
       let cur_neigh = board.getV(cur_neigh_pos, null);
-      if (cur_neigh && cur_neigh.count === tile.count && cur_neigh.vegetable === tile.vegetable) {
+      if (cur_neigh && cur_neigh.type === "veg" && cur_neigh.count === tile.count && cur_neigh.vegetable === tile.vegetable) {
         group.push(cur_neigh_pos);
         pending_expansion.push(cur_neigh_pos);
       }
@@ -10748,7 +10822,7 @@ function step() {
   import_shaku.default.gfx.clear(background_color);
   cursor_spr.position.copy(import_shaku.default.input.mousePosition);
   if (!grabbing_card) {
-    let cur_hovering_card = veg_hand.find((card) => posOverCard(import_shaku.default.input.mousePosition, card)) || null;
+    let cur_hovering_card = hand.find((card) => posOverCard(import_shaku.default.input.mousePosition, card)) || null;
     if (!hovering_card) {
       if (cur_hovering_card) {
         hovering_card = cur_hovering_card;
@@ -10773,13 +10847,13 @@ function step() {
     if (hovering_tile && board.getV(hovering_tile))
       hovering_tile = null;
     if (import_shaku.default.input.mouseReleased()) {
-      let card_index = veg_hand.indexOf(grabbing_card);
+      let card_index = hand.indexOf(grabbing_card);
       if (hovering_tile) {
         grabbing_card.sprite.position.set(CONFIG.board_x + CONFIG.card_w * hovering_tile.x, CONFIG.board_y + CONFIG.card_h * hovering_tile.y);
         board.setV(hovering_tile, grabbing_card);
         onPlaceCard(hovering_tile);
-        veg_hand.splice(card_index, 1);
-        veg_hand.forEach((card, k) => {
+        hand.splice(card_index, 1);
+        hand.forEach((card, k) => {
           if (k < card_index)
             return;
           new import_animator.default(card.sprite).to({
@@ -10801,7 +10875,7 @@ function step() {
     }
   }
   if (import_shaku.default.input.pressed("space")) {
-    addVegCard();
+    addCard();
   }
   if (import_shaku.default.input.pressed("1") || import_shaku.default.input.pressed("2")) {
     let hovering_tile = tileUnderPos(import_shaku.default.input.mousePosition);
@@ -10820,16 +10894,16 @@ function step() {
   if (import_shaku.default.input.pressed("3")) {
     let hovering_tile = tileUnderPos(import_shaku.default.input.mousePosition);
     if (hovering_card) {
-      veg_hand = veg_hand.filter((x) => x !== hovering_card);
-      veg_hand.forEach((card, k) => {
+      hand = hand.filter((x) => x !== hovering_card);
+      hand.forEach((card, k) => {
         new import_animator.default(card.sprite).to({
           "position": baseCardPos(k),
           "rotation": 0
         }).duration(0.2).play();
       });
     } else if (grabbing_card) {
-      veg_hand = veg_hand.filter((x) => x !== grabbing_card);
-      veg_hand.forEach((card, k) => {
+      hand = hand.filter((x) => x !== grabbing_card);
+      hand.forEach((card, k) => {
         new import_animator.default(card.sprite).to({
           "position": baseCardPos(k),
           "rotation": 0
@@ -10853,7 +10927,7 @@ function step() {
       import_shaku.default.gfx.useEffect(pixel_effect);
     }
   });
-  veg_hand.forEach((card) => {
+  hand.forEach((card) => {
     import_shaku.default.gfx.drawGroup(card.sprite, false);
     import_shaku.default.gfx.useEffect(import_shaku.default.gfx.builtinEffects.MsdfFont);
     let cur_num = numbers[card.count];
@@ -10874,6 +10948,9 @@ function step() {
 step();
 function randint(n_options) {
   return Math.floor(Math.random() * n_options);
+}
+function mod(n, m) {
+  return (n % m + m) % m;
 }
 /**
  * A utility to hold gametime.
