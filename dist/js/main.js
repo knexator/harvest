@@ -3442,7 +3442,7 @@ var require_effect = __commonJS({
     var { TextureWrapMode, TextureWrapModes } = require_texture_wrap_modes();
     var Matrix = require_matrix();
     var _logger = require_logger().getLogger("gfx-effect");
-    var Effect = class {
+    var Effect2 = class {
       _build(gl) {
         let program = gl.createProgram();
         {
@@ -3595,7 +3595,7 @@ var require_effect = __commonJS({
         if (texture === this._cachedValues.texture) {
           return false;
         }
-        let uniform = this._uniformBinds[Effect.UniformBinds.MainTexture];
+        let uniform = this._uniformBinds[Effect2.UniformBinds.MainTexture];
         if (uniform) {
           this._cachedValues.texture = texture;
           let glTexture = texture.texture || texture;
@@ -3607,7 +3607,7 @@ var require_effect = __commonJS({
         return false;
       }
       setColor(color) {
-        let uniform = this._uniformBinds[Effect.UniformBinds.Color];
+        let uniform = this._uniformBinds[Effect2.UniformBinds.Color];
         if (uniform) {
           if (color.equals(this._cachedValues.color)) {
             return;
@@ -3630,17 +3630,17 @@ var require_effect = __commonJS({
         if (!sourceRect) {
           sourceRect = new Rectangle(0, 0, texture.width, texture.height);
         }
-        let uvOffset = this._uniformBinds[Effect.UniformBinds.UvOffset];
+        let uvOffset = this._uniformBinds[Effect2.UniformBinds.UvOffset];
         if (uvOffset) {
           this.uniforms[uvOffset](sourceRect.x / texture.width, sourceRect.y / texture.height);
         }
-        let uvScale = this._uniformBinds[Effect.UniformBinds.UvScale];
+        let uvScale = this._uniformBinds[Effect2.UniformBinds.UvScale];
         if (uvScale) {
           this.uniforms[uvScale](sourceRect.width / texture.width, sourceRect.height / texture.height);
         }
       }
       setProjectionMatrix(matrix) {
-        let uniform = this._uniformBinds[Effect.UniformBinds.Projection];
+        let uniform = this._uniformBinds[Effect2.UniformBinds.Projection];
         if (uniform) {
           if (matrix.equals(this._cachedValues.projection)) {
             return;
@@ -3650,13 +3650,13 @@ var require_effect = __commonJS({
         }
       }
       setWorldMatrix(matrix) {
-        let uniform = this._uniformBinds[Effect.UniformBinds.World];
+        let uniform = this._uniformBinds[Effect2.UniformBinds.World];
         if (uniform) {
           this.uniforms[uniform](matrix.values);
         }
       }
       setPositionsAttribute(buffer) {
-        let attr = this._attributeBinds[Effect.AttributeBinds.Position];
+        let attr = this._attributeBinds[Effect2.AttributeBinds.Position];
         if (attr) {
           if (buffer === this._cachedValues.positions) {
             return;
@@ -3666,7 +3666,7 @@ var require_effect = __commonJS({
         }
       }
       setTextureCoordsAttribute(buffer) {
-        let attr = this._attributeBinds[Effect.AttributeBinds.TextureCoords];
+        let attr = this._attributeBinds[Effect2.AttributeBinds.TextureCoords];
         if (attr) {
           if (buffer === this._cachedValues.coords) {
             return;
@@ -3676,7 +3676,7 @@ var require_effect = __commonJS({
         }
       }
       setColorsAttribute(buffer) {
-        let attr = this._attributeBinds[Effect.AttributeBinds.Colors];
+        let attr = this._attributeBinds[Effect2.AttributeBinds.Colors];
         if (attr) {
           if (buffer === this._cachedValues.colors) {
             return;
@@ -3723,8 +3723,8 @@ var require_effect = __commonJS({
       writable: false
     });
     Object.freeze(UniformTypes);
-    Effect.UniformTypes = UniformTypes;
-    Effect.UniformBinds = {
+    Effect2.UniformTypes = UniformTypes;
+    Effect2.UniformBinds = {
       MainTexture: "texture",
       Color: "color",
       Projection: "projection",
@@ -3732,8 +3732,8 @@ var require_effect = __commonJS({
       UvOffset: "uvOffset",
       UvScale: "uvScale"
     };
-    Object.freeze(Effect.UniformBinds);
-    Effect.AttributeTypes = {
+    Object.freeze(Effect2.UniformBinds);
+    Effect2.AttributeTypes = {
       Byte: "BYTE",
       Short: "SHORT",
       UByte: "UNSIGNED_BYTE",
@@ -3741,13 +3741,13 @@ var require_effect = __commonJS({
       Float: "FLOAT",
       HalfFloat: "HALF_FLOAT"
     };
-    Object.freeze(Effect.AttributeTypes);
-    Effect.AttributeBinds = {
+    Object.freeze(Effect2.AttributeTypes);
+    Effect2.AttributeBinds = {
       Position: "position",
       TextureCoords: "uvs",
       Colors: "colors"
     };
-    Object.freeze(Effect.AttributeBinds);
+    Object.freeze(Effect2.AttributeBinds);
     function _setTextureFilter(gl, filter) {
       if (!TextureFilterModes2._values.has(filter)) {
         throw new Error("Invalid texture filter mode! Please pick a value from 'TextureFilterModes'.");
@@ -3769,7 +3769,7 @@ var require_effect = __commonJS({
       gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl[wrapX]);
       gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl[wrapY]);
     }
-    module.exports = Effect;
+    module.exports = Effect2;
   }
 });
 
@@ -3777,8 +3777,8 @@ var require_effect = __commonJS({
 var require_basic = __commonJS({
   "../Shaku/lib/gfx/effects/basic.js"(exports, module) {
     "use strict";
-    var Effect = require_effect();
-    var vertexShader = `
+    var Effect2 = require_effect();
+    var vertexShader2 = `
 attribute vec3 position;
 attribute vec2 coord;
 attribute vec4 color;
@@ -3796,7 +3796,7 @@ void main(void) {
     v_color = color;
 }
     `;
-    var fragmentShader = `  
+    var fragmentShader2 = `  
 #ifdef GL_ES
     precision highp float;
 #endif
@@ -3811,25 +3811,25 @@ void main(void) {
     gl_FragColor.rgb *= gl_FragColor.a;
 }
     `;
-    var BasicEffect = class extends Effect {
+    var BasicEffect = class extends Effect2 {
       get vertexCode() {
-        return vertexShader;
+        return vertexShader2;
       }
       get fragmentCode() {
-        return fragmentShader;
+        return fragmentShader2;
       }
       get uniformTypes() {
         return {
-          "texture": { type: Effect.UniformTypes.Texture, bind: Effect.UniformBinds.MainTexture },
-          "projection": { type: Effect.UniformTypes.Matrix, bind: Effect.UniformBinds.Projection },
-          "world": { type: Effect.UniformTypes.Matrix, bind: Effect.UniformBinds.World }
+          "texture": { type: Effect2.UniformTypes.Texture, bind: Effect2.UniformBinds.MainTexture },
+          "projection": { type: Effect2.UniformTypes.Matrix, bind: Effect2.UniformBinds.Projection },
+          "world": { type: Effect2.UniformTypes.Matrix, bind: Effect2.UniformBinds.World }
         };
       }
       get attributeTypes() {
         return {
-          "position": { size: 3, type: Effect.AttributeTypes.Float, normalize: false, bind: Effect.AttributeBinds.Position },
-          "coord": { size: 2, type: Effect.AttributeTypes.Float, normalize: false, bind: Effect.AttributeBinds.TextureCoords },
-          "color": { size: 4, type: Effect.AttributeTypes.Float, normalize: false, bind: Effect.AttributeBinds.Colors }
+          "position": { size: 3, type: Effect2.AttributeTypes.Float, normalize: false, bind: Effect2.AttributeBinds.Position },
+          "coord": { size: 2, type: Effect2.AttributeTypes.Float, normalize: false, bind: Effect2.AttributeBinds.TextureCoords },
+          "color": { size: 4, type: Effect2.AttributeTypes.Float, normalize: false, bind: Effect2.AttributeBinds.Colors }
         };
       }
     };
@@ -3841,8 +3841,8 @@ void main(void) {
 var require_msdf_font = __commonJS({
   "../Shaku/lib/gfx/effects/msdf_font.js"(exports, module) {
     "use strict";
-    var Effect = require_effect();
-    var vertexShader = `#version 300 es
+    var Effect2 = require_effect();
+    var vertexShader2 = `#version 300 es
 in vec3 a_position;
 in vec2 a_coord;
 in vec4 a_color;
@@ -3859,7 +3859,7 @@ void main(void) {
     v_texCoord = a_coord;
     v_color = a_color;
 }`;
-    var fragmentShader = `#version 300 es
+    var fragmentShader2 = `#version 300 es
 precision highp float;
 
 uniform sampler2D u_texture;
@@ -3882,25 +3882,25 @@ void main(void) {
   vec3 color = v_color.rgb * alpha;
   FragColor = vec4(color, alpha) * v_color.a;
 }`;
-    var MsdfFontEffect = class extends Effect {
+    var MsdfFontEffect = class extends Effect2 {
       get vertexCode() {
-        return vertexShader;
+        return vertexShader2;
       }
       get fragmentCode() {
-        return fragmentShader;
+        return fragmentShader2;
       }
       get uniformTypes() {
         return {
-          "u_texture": { type: Effect.UniformTypes.Texture, bind: Effect.UniformBinds.MainTexture },
-          "u_projection": { type: Effect.UniformTypes.Matrix, bind: Effect.UniformBinds.Projection },
-          "u_world": { type: Effect.UniformTypes.Matrix, bind: Effect.UniformBinds.World }
+          "u_texture": { type: Effect2.UniformTypes.Texture, bind: Effect2.UniformBinds.MainTexture },
+          "u_projection": { type: Effect2.UniformTypes.Matrix, bind: Effect2.UniformBinds.Projection },
+          "u_world": { type: Effect2.UniformTypes.Matrix, bind: Effect2.UniformBinds.World }
         };
       }
       get attributeTypes() {
         return {
-          "a_position": { size: 3, type: Effect.AttributeTypes.Float, normalize: false, bind: Effect.AttributeBinds.Position },
-          "a_coord": { size: 2, type: Effect.AttributeTypes.Float, normalize: false, bind: Effect.AttributeBinds.TextureCoords },
-          "a_color": { size: 4, type: Effect.AttributeTypes.Float, normalize: false, bind: Effect.AttributeBinds.Colors }
+          "a_position": { size: 3, type: Effect2.AttributeTypes.Float, normalize: false, bind: Effect2.AttributeBinds.Position },
+          "a_coord": { size: 2, type: Effect2.AttributeTypes.Float, normalize: false, bind: Effect2.AttributeBinds.TextureCoords },
+          "a_color": { size: 4, type: Effect2.AttributeTypes.Float, normalize: false, bind: Effect2.AttributeBinds.Colors }
         };
       }
     };
@@ -4909,7 +4909,7 @@ var require_gfx = __commonJS({
     var Color3 = require_color();
     var { BlendMode, BlendModes: BlendModes2 } = require_blend_modes();
     var Rectangle = require_rectangle();
-    var { Effect, BasicEffect, MsdfFontEffect } = require_effects();
+    var { Effect: Effect2, BasicEffect, MsdfFontEffect } = require_effects();
     var TextureAsset = require_texture_asset();
     var { TextureFilterMode, TextureFilterModes: TextureFilterModes2 } = require_texture_filter_modes();
     var { TextureWrapMode, TextureWrapModes } = require_texture_wrap_modes();
@@ -4975,7 +4975,7 @@ var require_gfx = __commonJS({
         return this._canvas;
       }
       get Effect() {
-        return Effect;
+        return Effect2;
       }
       get BasicEffect() {
         return BasicEffect;
@@ -5019,7 +5019,7 @@ var require_gfx = __commonJS({
         return camera;
       }
       createEffect(type) {
-        if (!(type.prototype instanceof Effect)) {
+        if (!(type.prototype instanceof Effect2)) {
           throw new Error("'type' must be a class type that inherits from 'Effect'.");
         }
         let effect = new type();
@@ -10528,17 +10528,80 @@ var Grid2D = class {
 // src/main.ts
 var import_vector2 = __toESM(require_vector2());
 var import_animator = __toESM(require_animator());
+
+// src/pixel_effect.ts
+var import_effect = __toESM(require_effect());
+var vertexShader = `#version 300 es
+in vec3 a_position;
+in vec2 a_coord;
+in vec4 a_color;
+
+uniform mat4 u_projection;
+uniform mat4 u_world;
+
+out vec2 v_texCoord;
+out vec4 v_color;
+
+void main(void) {
+    gl_Position = u_projection * u_world * vec4(a_position, 1.0);
+    gl_PointSize = 1.0;
+    v_texCoord = a_coord;
+    v_color = a_color;
+}`;
+var fragmentShader = `#version 300 es
+precision highp float;
+
+uniform sampler2D u_texture;
+
+in vec2 v_texCoord;
+in vec4 v_color;
+out vec4 FragColor;
+
+void main(void) {
+	vec2 texsize = vec2(textureSize(u_texture, 0));
+	vec2 uv_texspace = v_texCoord * texsize;
+	vec2 seam = floor(uv_texspace + .5);
+	uv_texspace = (uv_texspace - seam) / fwidth(uv_texspace) + seam;
+	uv_texspace = clamp(uv_texspace, seam - .5, seam + .5);
+	FragColor = texture(u_texture, uv_texspace / texsize)  * v_color;
+	FragColor.rgb *= FragColor.a;
+}`;
+var PixelEffect = class extends import_effect.default {
+  get vertexCode() {
+    return vertexShader;
+  }
+  get fragmentCode() {
+    return fragmentShader;
+  }
+  get uniformTypes() {
+    return {
+      "u_texture": { type: import_effect.default.UniformTypes.Texture, bind: import_effect.default.UniformBinds.MainTexture },
+      "u_projection": { type: import_effect.default.UniformTypes.Matrix, bind: import_effect.default.UniformBinds.Projection },
+      "u_world": { type: import_effect.default.UniformTypes.Matrix, bind: import_effect.default.UniformBinds.World }
+    };
+  }
+  get attributeTypes() {
+    return {
+      "a_position": { size: 3, type: import_effect.default.AttributeTypes.Float, normalize: false, bind: import_effect.default.AttributeBinds.Position },
+      "a_coord": { size: 2, type: import_effect.default.AttributeTypes.Float, normalize: false, bind: import_effect.default.AttributeBinds.TextureCoords },
+      "a_color": { size: 4, type: import_effect.default.AttributeTypes.Float, normalize: false, bind: import_effect.default.AttributeBinds.Colors }
+    };
+  }
+};
+
+// src/main.ts
 var CONFIG = {
   board_w: 6,
   board_h: 5,
   max_count: 6,
   veg_hand_size: 6,
   n_types: 4,
-  pixel_scaling: 2.5,
-  card_s: 70,
-  tile_s: 70,
-  board_x: 50,
-  board_y: 150
+  pixel_scaling: 4,
+  card_w: 90,
+  card_h: 120,
+  card_x: 740,
+  board_x: 60,
+  board_y: 60
 };
 var gui = new GUI$1({});
 gui.remember(CONFIG);
@@ -10556,22 +10619,23 @@ import_shaku.default.startFrame();
 import_shaku.default.gfx.clear(import_shaku.default.utils.Color.cornflowerblue);
 import_shaku.default.endFrame();
 function randomVeg() {
-  return [0 /* CABBAGE */, 1 /* CARROT */, 2 /* KALE */, 3 /* POTATO */, 4 /* PUMPKIN */][randint(CONFIG.n_types)];
+  return [0 /* CAULIFLOWER */, 1 /* CABBAGE */, 2 /* CARROT */, 3 /* KALE */, 4 /* POTATO */, 5 /* PUMPKIN */][randint(CONFIG.n_types)];
 }
 var main_font = await import_shaku.default.assets.loadMsdfFontTexture("fonts/Arial.ttf", { jsonUrl: "fonts/Arial.json", textureUrl: "fonts/Arial.png" });
 var vegetable_textures = {
-  0: await import_shaku.default.assets.loadTexture("imgs/cabbage_04.png"),
-  1: await import_shaku.default.assets.loadTexture("imgs/carrot_04.png"),
-  2: await import_shaku.default.assets.loadTexture("imgs/kale_04.png"),
-  3: await import_shaku.default.assets.loadTexture("imgs/potato_04.png"),
-  4: await import_shaku.default.assets.loadTexture("imgs/pumpkin_04.png")
+  0: await import_shaku.default.assets.loadTexture("imgs/cauliflower_04.png"),
+  1: await import_shaku.default.assets.loadTexture("imgs/cabbage_04.png"),
+  2: await import_shaku.default.assets.loadTexture("imgs/carrot_04.png"),
+  3: await import_shaku.default.assets.loadTexture("imgs/kale_04.png"),
+  4: await import_shaku.default.assets.loadTexture("imgs/potato_04.png"),
+  5: await import_shaku.default.assets.loadTexture("imgs/pumpkin_04.png")
 };
-var card_texture = await import_shaku.default.assets.loadTexture("imgs/card.png");
 var cursor_default = await import_shaku.default.assets.loadTexture("imgs/cursor_02.png");
 var cursor_hover = await import_shaku.default.assets.loadTexture("imgs/hand_open_02.png");
 var cursor_grabbed = await import_shaku.default.assets.loadTexture("imgs/hand_closed_02.png");
 var hole_texture = await import_shaku.default.assets.loadTexture("imgs/soil_00.png");
-var board = Grid2D.init(CONFIG.board_w, CONFIG.board_h, (i, j) => false);
+var crate_texture = await import_shaku.default.assets.loadTexture("imgs/crate_base.png");
+var board = Grid2D.init(CONFIG.board_w, CONFIG.board_h, (i, j) => null);
 var veg_hand = [];
 for (let k = 0; k < CONFIG.veg_hand_size; k++) {
   addVegCard();
@@ -10582,7 +10646,7 @@ var grabbing_card = null;
 var board_floor = Grid2D.init(CONFIG.board_w, CONFIG.board_h, (i, j) => {
   let res = new import_sprite.default(hole_texture);
   res.size.mulSelf(CONFIG.pixel_scaling);
-  res.position.set(CONFIG.board_x + i * CONFIG.tile_s, CONFIG.board_y + j * CONFIG.tile_s + CONFIG.pixel_scaling * 4);
+  res.position.set(CONFIG.board_x + i * CONFIG.card_w, CONFIG.board_y + j * CONFIG.card_h + CONFIG.pixel_scaling * 4);
   res.static = true;
   return res;
 });
@@ -10593,45 +10657,50 @@ for (let k = 0; k < 10; k++) {
   numbers.push(cur);
 }
 var directions = [import_vector2.default.right, import_vector2.default.down, import_vector2.default.left, import_vector2.default.up];
+var pixel_effect = import_shaku.default.gfx.createEffect(PixelEffect);
 var cursor_default_spr = new import_sprite.default(cursor_default);
 cursor_default_spr.origin = import_vector2.default.zero;
-cursor_default_spr.size.mulSelf(1.5);
+cursor_default_spr.size.mulSelf(CONFIG.pixel_scaling);
 var cursor_hover_spr = new import_sprite.default(cursor_hover);
-cursor_hover_spr.size.mulSelf(1.5);
+cursor_hover_spr.size.mulSelf(CONFIG.pixel_scaling);
 var cursor_grabbed_spr = new import_sprite.default(cursor_grabbed);
-cursor_grabbed_spr.size.mulSelf(1.5);
+cursor_grabbed_spr.size.mulSelf(CONFIG.pixel_scaling);
 var cursor_spr = cursor_default_spr;
 document.querySelector("canvas").style.cursor = "none";
 var points_spr;
 refreshPoints();
 var background_color = import_color.default.fromHex("#E4A672");
+function baseCardPos(index) {
+  return new import_vector2.default(CONFIG.card_x, CONFIG.board_y + CONFIG.card_h * index);
+}
 function addVegCard() {
   let new_veg_card = {
     vegetable: randomVeg(),
     count: randint(CONFIG.max_count) + 1,
     sprite: new import_sprites_group.default()
   };
-  new_veg_card.sprite.add(new import_sprite.default(card_texture));
+  let asdf = new import_sprite.default(import_shaku.default.gfx.whiteTexture);
+  asdf.size.set(CONFIG.card_w * 0.9 / CONFIG.pixel_scaling, CONFIG.card_h * 0.9 / CONFIG.pixel_scaling);
+  new_veg_card.sprite.add(asdf);
   new_veg_card.sprite.add(new import_sprite.default(vegetable_textures[new_veg_card.vegetable]));
   new_veg_card.sprite.scale.mulSelf(CONFIG.pixel_scaling);
   new_veg_card.sprite.position.set(import_shaku.default.gfx.canvas.width / 2, import_shaku.default.gfx.canvas.height * 1.25);
   new import_animator.default(new_veg_card.sprite).to({
-    "position.x": (veg_hand.length + 0.5) * CONFIG.card_s,
-    "position.y": CONFIG.card_s * 0.5
+    "position": baseCardPos(veg_hand.length)
   }).duration(0.2).play();
   veg_hand.push(new_veg_card);
 }
 function posOverCard(pos, card) {
-  return Math.abs(pos.x - card.sprite.position.x) < CONFIG.card_s * 0.45 && Math.abs(pos.y - card.sprite.position.y) < CONFIG.card_s * 0.45;
+  return Math.abs(pos.x - card.sprite.position.x) < CONFIG.card_w * 0.45 && Math.abs(pos.y - card.sprite.position.y) < CONFIG.card_h * 0.45;
 }
 function tileUnderPos(pos) {
-  let i = Math.floor((pos.x - CONFIG.board_x) / CONFIG.tile_s + 0.5);
-  let j = Math.floor((pos.y - CONFIG.board_y) / CONFIG.tile_s + 0.5);
+  let i = Math.floor((pos.x - CONFIG.board_x) / CONFIG.card_w + 0.5);
+  let j = Math.floor((pos.y - CONFIG.board_y) / CONFIG.card_h + 0.5);
   if (i < 0 || i >= CONFIG.board_w || j < 0 || j >= CONFIG.board_h)
     return null;
   return new import_vector2.default(i, j);
 }
-function onPlace(pos) {
+function onPlaceCard(pos) {
   let connected_group = connectedGroup(pos);
   if (connected_group.length > 1) {
     points += connected_group.length;
@@ -10642,7 +10711,7 @@ function onPlace(pos) {
         tile.count -= 1;
         new import_animator.default(tile.sprite).from({ "rotation": Math.PI * 2 }).to({ "rotation": 0 }).duration(0.3).play();
       } else {
-        board.setV(p, false);
+        board.setV(p, null);
       }
     });
   }
@@ -10706,29 +10775,21 @@ function step() {
     if (import_shaku.default.input.mouseReleased()) {
       let card_index = veg_hand.indexOf(grabbing_card);
       if (hovering_tile) {
-        let new_veg_tile = {
-          count: grabbing_card.count,
-          vegetable: grabbing_card.vegetable,
-          sprite: new import_sprite.default(vegetable_textures[grabbing_card.vegetable])
-        };
-        new_veg_tile.sprite.position.set(CONFIG.board_x + CONFIG.tile_s * hovering_tile.x, CONFIG.board_y + CONFIG.tile_s * hovering_tile.y);
-        new_veg_tile.sprite.size.mulSelf(CONFIG.pixel_scaling);
-        board.setV(hovering_tile, new_veg_tile);
-        onPlace(hovering_tile);
+        grabbing_card.sprite.position.set(CONFIG.board_x + CONFIG.card_w * hovering_tile.x, CONFIG.board_y + CONFIG.card_h * hovering_tile.y);
+        board.setV(hovering_tile, grabbing_card);
+        onPlaceCard(hovering_tile);
         veg_hand.splice(card_index, 1);
         veg_hand.forEach((card, k) => {
           if (k < card_index)
             return;
           new import_animator.default(card.sprite).to({
-            "position.x": (k + 0.5) * CONFIG.card_s,
-            "position.y": CONFIG.card_s * 0.5,
+            "position": baseCardPos(k),
             "rotation": 0
           }).duration(0.2).play();
         });
       } else {
         new import_animator.default(grabbing_card.sprite).to({
-          "position.x": (card_index + 0.5) * CONFIG.card_s,
-          "position.y": CONFIG.card_s * 0.5,
+          "position": baseCardPos(card_index),
           "rotation": 0
         }).duration(0.2).play();
       }
@@ -10762,8 +10823,7 @@ function step() {
       veg_hand = veg_hand.filter((x) => x !== hovering_card);
       veg_hand.forEach((card, k) => {
         new import_animator.default(card.sprite).to({
-          "position.x": (k + 0.5) * CONFIG.card_s,
-          "position.y": CONFIG.card_s * 0.5,
+          "position": baseCardPos(k),
           "rotation": 0
         }).duration(0.2).play();
       });
@@ -10771,26 +10831,26 @@ function step() {
       veg_hand = veg_hand.filter((x) => x !== grabbing_card);
       veg_hand.forEach((card, k) => {
         new import_animator.default(card.sprite).to({
-          "position.x": (k + 0.5) * CONFIG.card_s,
-          "position.y": CONFIG.card_s * 0.5,
+          "position": baseCardPos(k),
           "rotation": 0
         }).duration(0.2).play();
       });
     } else if (hovering_tile) {
-      board.setV(hovering_tile, false);
+      board.setV(hovering_tile, null);
     }
   }
+  import_shaku.default.gfx.useEffect(pixel_effect);
   board_floor.forEach((i, j, spr) => import_shaku.default.gfx.drawSprite(spr));
   board.forEach((i, j, tile) => {
     if (tile) {
-      import_shaku.default.gfx.drawSprite(tile.sprite);
+      import_shaku.default.gfx.drawGroup(tile.sprite, false);
       import_shaku.default.gfx.useEffect(import_shaku.default.gfx.builtinEffects.MsdfFont);
       let cur_num = numbers[tile.count];
       cur_num.position.copy(tile.sprite.position);
       cur_num.rotation = 0;
       cur_num.scale.set(CONFIG.pixel_scaling, CONFIG.pixel_scaling);
       import_shaku.default.gfx.drawGroup(cur_num, false);
-      import_shaku.default.gfx.useEffect(null);
+      import_shaku.default.gfx.useEffect(pixel_effect);
     }
   });
   veg_hand.forEach((card) => {
@@ -10801,11 +10861,11 @@ function step() {
     cur_num.rotation = card.sprite.rotation;
     cur_num.scale.copy(card.sprite.scale);
     import_shaku.default.gfx.drawGroup(cur_num, false);
-    import_shaku.default.gfx.useEffect(null);
+    import_shaku.default.gfx.useEffect(pixel_effect);
   });
   import_shaku.default.gfx.useEffect(import_shaku.default.gfx.builtinEffects.MsdfFont);
   import_shaku.default.gfx.drawGroup(points_spr, false);
-  import_shaku.default.gfx.useEffect(null);
+  import_shaku.default.gfx.useEffect(pixel_effect);
   cursor_spr.position.copy(import_shaku.default.input.mousePosition);
   import_shaku.default.gfx.drawSprite(cursor_spr);
   import_shaku.default.endFrame();

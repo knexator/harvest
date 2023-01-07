@@ -8,6 +8,7 @@ import SpritesGroup from "shaku/lib/gfx/sprites_group";
 import { Grid2D } from "./grid2D";
 import Vector2 from "shaku/lib/utils/vector2";
 import Animator from "shaku/lib/utils/animator";
+import { PixelEffect } from "./pixel_effect";
 
 /*
 space - get card
@@ -21,11 +22,12 @@ const CONFIG = {
     veg_hand_size: 6,
     n_types: 4,
 
-    pixel_scaling: 2.5,
-    card_s: 70,
-    tile_s: 70,
-    board_x: 50,
-    board_y: 150,
+    pixel_scaling: 4,
+    card_w: 90,
+    card_h: 120,
+    card_x: 740,
+    board_x: 60,
+    board_y: 60,
 };
 let gui = new dat.GUI({});
 gui.remember(CONFIG);
@@ -54,6 +56,7 @@ Shaku.endFrame();
 
 // TYPE DEFINITIONS
 enum Veg {
+    CAULIFLOWER,
     CABBAGE,
     CARROT,
     KALE,
@@ -61,37 +64,39 @@ enum Veg {
     PUMPKIN,
 }
 
-type VegTile = false | { vegetable: Veg, count: number, sprite: Sprite };
+// type VegTile = false | { vegetable: Veg, count: number, sprite: Sprite };
 type VegCard = { vegetable: Veg, count: number, sprite: SpritesGroup };
 
 function randomVeg() {
-    return [Veg.CABBAGE, Veg.CARROT, Veg.KALE, Veg.POTATO, Veg.PUMPKIN][randint(CONFIG.n_types)];
+    return [Veg.CAULIFLOWER, Veg.CABBAGE, Veg.CARROT, Veg.KALE, Veg.POTATO, Veg.PUMPKIN][randint(CONFIG.n_types)];
 }
 
 // LOAD ASSETS
 const main_font = await Shaku.assets.loadMsdfFontTexture('fonts/Arial.ttf', { jsonUrl: 'fonts/Arial.json', textureUrl: 'fonts/Arial.png' });
 
 const vegetable_textures: Record<Veg, TextureAsset> = {
-    0: await Shaku.assets.loadTexture("imgs/cabbage_04.png"),
-    1: await Shaku.assets.loadTexture("imgs/carrot_04.png"),
-    2: await Shaku.assets.loadTexture("imgs/kale_04.png"),
-    3: await Shaku.assets.loadTexture("imgs/potato_04.png"),
-    4: await Shaku.assets.loadTexture("imgs/pumpkin_04.png"),
+    0: await Shaku.assets.loadTexture("imgs/cauliflower_04.png"),
+    1: await Shaku.assets.loadTexture("imgs/cabbage_04.png"),
+    2: await Shaku.assets.loadTexture("imgs/carrot_04.png"),
+    3: await Shaku.assets.loadTexture("imgs/kale_04.png"),
+    4: await Shaku.assets.loadTexture("imgs/potato_04.png"),
+    5: await Shaku.assets.loadTexture("imgs/pumpkin_04.png"),
 }
 
-const card_texture = await Shaku.assets.loadTexture("imgs/card.png");
+// const card_texture = await Shaku.assets.loadTexture("imgs/card.png");
 
 const cursor_default = await Shaku.assets.loadTexture("imgs/cursor_02.png");
 const cursor_hover = await Shaku.assets.loadTexture("imgs/hand_open_02.png");
 const cursor_grabbed = await Shaku.assets.loadTexture("imgs/hand_closed_02.png");
 
 const hole_texture = await Shaku.assets.loadTexture("imgs/soil_00.png");
+const crate_texture = await Shaku.assets.loadTexture("imgs/crate_base.png");
 
 // let soundAsset = await Shaku.assets.loadSound('sounds/example_sound.wav');
 // let soundInstance = Shaku.sfx!.createSound(soundAsset);
 
 // GAME LOGIC, GLOBAL OBJECTS
-let board = Grid2D.init<VegTile>(CONFIG.board_w, CONFIG.board_h, (i, j) => false);
+let board = Grid2D.init<VegCard | null>(CONFIG.board_w, CONFIG.board_h, (i, j) => null);
 let veg_hand: VegCard[] = [];
 for (let k = 0; k < CONFIG.veg_hand_size; k++) {
     addVegCard();
@@ -105,7 +110,7 @@ let grabbing_card: VegCard | null = null;
 let board_floor = Grid2D.init<Sprite>(CONFIG.board_w, CONFIG.board_h, (i, j) => {
     let res = new Sprite(hole_texture);
     res.size.mulSelf(CONFIG.pixel_scaling);
-    res.position.set(CONFIG.board_x + i * CONFIG.tile_s, CONFIG.board_y + j * CONFIG.tile_s + CONFIG.pixel_scaling * 4);
+    res.position.set(CONFIG.board_x + i * CONFIG.card_w, CONFIG.board_y + j * CONFIG.card_h + CONFIG.pixel_scaling * 4);
     res.static = true;
     return res;
 });
@@ -119,13 +124,15 @@ for (let k = 0; k < 10; k++) {
 
 const directions = [Vector2.right, Vector2.down, Vector2.left, Vector2.up];
 
+const pixel_effect = Shaku.gfx.createEffect(PixelEffect);
+
 const cursor_default_spr = new Sprite(cursor_default);
 cursor_default_spr.origin = Vector2.zero;
-cursor_default_spr.size.mulSelf(1.5);
+cursor_default_spr.size.mulSelf(CONFIG.pixel_scaling);
 const cursor_hover_spr = new Sprite(cursor_hover);
-cursor_hover_spr.size.mulSelf(1.5);
+cursor_hover_spr.size.mulSelf(CONFIG.pixel_scaling);
 const cursor_grabbed_spr = new Sprite(cursor_grabbed);
-cursor_grabbed_spr.size.mulSelf(1.5);
+cursor_grabbed_spr.size.mulSelf(CONFIG.pixel_scaling);
 
 let cursor_spr = cursor_default_spr;
 document.querySelector("canvas")!.style.cursor = "none";
@@ -135,13 +142,19 @@ refreshPoints();
 
 const background_color = Color.fromHex("#E4A672");
 
+function baseCardPos(index: number) {
+    return new Vector2(CONFIG.card_x, CONFIG.board_y + CONFIG.card_h * index);
+}
+
 function addVegCard() {
     let new_veg_card: VegCard = {
         vegetable: randomVeg(),
         count: randint(CONFIG.max_count) + 1,
         sprite: new SpritesGroup(),
     }
-    new_veg_card.sprite.add(new Sprite(card_texture));
+    let asdf = new Sprite(Shaku.gfx.whiteTexture);
+    asdf.size.set(CONFIG.card_w * .9 / CONFIG.pixel_scaling, CONFIG.card_h * .9 / CONFIG.pixel_scaling);
+    new_veg_card.sprite.add(asdf);
     new_veg_card.sprite.add(new Sprite(vegetable_textures[new_veg_card.vegetable]));
     new_veg_card.sprite.scale.mulSelf(CONFIG.pixel_scaling);
 
@@ -149,25 +162,25 @@ function addVegCard() {
 
     new_veg_card.sprite.position.set(Shaku.gfx.canvas.width / 2, Shaku.gfx.canvas.height * 1.25);
     new Animator(new_veg_card.sprite).to({
-        "position.x": (veg_hand.length + .5) * (CONFIG.card_s),
-        "position.y": CONFIG.card_s * .5
+        "position": baseCardPos(veg_hand.length)
     }).duration(.2).play();
+
 
     veg_hand.push(new_veg_card);
 }
 
 function posOverCard(pos: Vector2, card: VegCard) {
-    return Math.abs(pos.x - card.sprite.position.x) < CONFIG.card_s * .45 && Math.abs(pos.y - card.sprite.position.y) < CONFIG.card_s * .45;
+    return Math.abs(pos.x - card.sprite.position.x) < CONFIG.card_w * .45 && Math.abs(pos.y - card.sprite.position.y) < CONFIG.card_h * .45;
 }
 
 function tileUnderPos(pos: Vector2): Vector2 | null {
-    let i = Math.floor((pos.x - CONFIG.board_x) / CONFIG.tile_s + .5);
-    let j = Math.floor((pos.y - CONFIG.board_y) / CONFIG.tile_s + .5);
+    let i = Math.floor((pos.x - CONFIG.board_x) / CONFIG.card_w + .5);
+    let j = Math.floor((pos.y - CONFIG.board_y) / CONFIG.card_h + .5);
     if (i < 0 || i >= CONFIG.board_w || j < 0 || j >= CONFIG.board_h) return null;
     return new Vector2(i, j);
 }
 
-function onPlace(pos: Vector2) {
+function onPlaceCard(pos: Vector2) {
     // todo: plant grow animation
 
     let connected_group = connectedGroup(pos);
@@ -176,13 +189,13 @@ function onPlace(pos: Vector2) {
         points += connected_group.length;
         refreshPoints();
         connected_group.forEach(p => {
-            let tile = board.getV(p) as Exclude<VegTile, false>;
+            let tile = board.getV(p) as Exclude<VegCard, false>;
             if (tile.count > 1) {
                 tile.count -= 1;
                 // todo: better anim
                 new Animator(tile.sprite).from({ "rotation": Math.PI * 2 }).to({ "rotation": 0 }).duration(.3).play();
             } else {
-                board.setV(p, false);
+                board.setV(p, null);
             }
         });
     }
@@ -254,29 +267,27 @@ function step() {
             // stop grabbing
             let card_index = veg_hand.indexOf(grabbing_card);
             if (hovering_tile) {
-                let new_veg_tile = {
-                    count: grabbing_card.count,
-                    vegetable: grabbing_card.vegetable,
-                    sprite: new Sprite(vegetable_textures[grabbing_card.vegetable]),
-                }
-                new_veg_tile.sprite.position.set(CONFIG.board_x + CONFIG.tile_s * hovering_tile.x, CONFIG.board_y + CONFIG.tile_s * hovering_tile.y);
-                new_veg_tile.sprite.size.mulSelf(CONFIG.pixel_scaling);
-                board.setV(hovering_tile, new_veg_tile);
-                onPlace(hovering_tile)
+                // let new_veg_tile = {
+                //     count: grabbing_card.count,
+                //     vegetable: grabbing_card.vegetable,
+                //     sprite: new Sprite(vegetable_textures[grabbing_card.vegetable]),
+                // }
+                grabbing_card.sprite.position.set(CONFIG.board_x + CONFIG.card_w * hovering_tile.x, CONFIG.board_y + CONFIG.card_h * hovering_tile.y);
+                // new_veg_tile.sprite.size.mulSelf(CONFIG.pixel_scaling);
+                board.setV(hovering_tile, grabbing_card);
+                onPlaceCard(hovering_tile)
                 // todo: card dissapear animation
                 veg_hand.splice(card_index, 1);
                 veg_hand.forEach((card, k) => {
                     if (k < card_index) return;
                     new Animator(card.sprite).to({
-                        "position.x": (k + .5) * (CONFIG.card_s),
-                        "position.y": CONFIG.card_s * .5,
+                        "position": baseCardPos(k),
                         "rotation": 0,
                     }).duration(.2).play();
                 })
             } else {
                 new Animator(grabbing_card.sprite).to({
-                    "position.x": (card_index + .5) * (CONFIG.card_s),
-                    "position.y": CONFIG.card_s * .5,
+                    "position": baseCardPos(card_index),
                     "rotation": 0,
                 }).duration(.2).play();
             }
@@ -313,8 +324,7 @@ function step() {
             veg_hand = veg_hand.filter(x => x !== hovering_card);
             veg_hand.forEach((card, k) => {
                 new Animator(card.sprite).to({
-                    "position.x": (k + .5) * (CONFIG.card_s),
-                    "position.y": CONFIG.card_s * .5,
+                    "position": baseCardPos(k),
                     "rotation": 0,
                 }).duration(.2).play();
             })
@@ -322,29 +332,28 @@ function step() {
             veg_hand = veg_hand.filter(x => x !== grabbing_card);
             veg_hand.forEach((card, k) => {
                 new Animator(card.sprite).to({
-                    "position.x": (k + .5) * (CONFIG.card_s),
-                    "position.y": CONFIG.card_s * .5,
+                    "position": baseCardPos(k),
                     "rotation": 0,
                 }).duration(.2).play();
             })
         } else if (hovering_tile) {
-            board.setV(hovering_tile, false);
+            board.setV(hovering_tile, null);
         }
     }
 
     // RENDERING
+    Shaku.gfx.useEffect(pixel_effect);
     board_floor.forEach((i, j, spr) => Shaku.gfx.drawSprite(spr));
     board.forEach((i, j, tile) => {
         if (tile) {
-            Shaku.gfx.drawSprite(tile.sprite);
+            Shaku.gfx.drawGroup(tile.sprite, false);
             Shaku.gfx.useEffect(Shaku.gfx.builtinEffects.MsdfFont);
             let cur_num = numbers[tile.count];
             cur_num.position.copy(tile.sprite.position);
             cur_num.rotation = 0;
             cur_num.scale.set(CONFIG.pixel_scaling, CONFIG.pixel_scaling);
             Shaku.gfx.drawGroup(cur_num, false);
-            // @ts-ignore
-            Shaku.gfx.useEffect(null);
+            Shaku.gfx.useEffect(pixel_effect);
         }
     })
     veg_hand.forEach(card => {
@@ -355,14 +364,12 @@ function step() {
         cur_num.rotation = card.sprite.rotation;
         cur_num.scale.copy(card.sprite.scale);
         Shaku.gfx.drawGroup(cur_num, false);
-        // @ts-ignore
-        Shaku.gfx.useEffect(null);
+        Shaku.gfx.useEffect(pixel_effect);
     })
 
     Shaku.gfx.useEffect(Shaku.gfx.builtinEffects.MsdfFont);
     Shaku.gfx.drawGroup(points_spr, false);
-    // @ts-ignore
-    Shaku.gfx.useEffect(null);
+    Shaku.gfx.useEffect(pixel_effect);
 
     cursor_spr.position.copy(Shaku.input.mousePosition);
     Shaku.gfx.drawSprite(cursor_spr);
