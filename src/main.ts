@@ -57,15 +57,15 @@ enum Veg {
     CABBAGE,
     CARROT,
     KALE,
+    POTATO,
     PUMPKIN,
-    POTATO
 }
 
 type VegTile = false | { vegetable: Veg, count: number, sprite: Sprite };
 type VegCard = { vegetable: Veg, count: number, sprite: SpritesGroup };
 
 function randomVeg() {
-    return [Veg.CABBAGE, Veg.CARROT, Veg.KALE, Veg.PUMPKIN, Veg.POTATO][randint(CONFIG.n_types)];
+    return [Veg.CABBAGE, Veg.CARROT, Veg.KALE, Veg.POTATO, Veg.PUMPKIN][randint(CONFIG.n_types)];
 }
 
 // LOAD ASSETS
@@ -75,8 +75,8 @@ const vegetable_textures: Record<Veg, TextureAsset> = {
     0: await Shaku.assets.loadTexture("imgs/cabbage_04.png"),
     1: await Shaku.assets.loadTexture("imgs/carrot_04.png"),
     2: await Shaku.assets.loadTexture("imgs/kale_04.png"),
-    3: await Shaku.assets.loadTexture("imgs/pumpkin_04.png"),
-    4: await Shaku.assets.loadTexture("imgs/potato_04.png"),
+    3: await Shaku.assets.loadTexture("imgs/potato_04.png"),
+    4: await Shaku.assets.loadTexture("imgs/pumpkin_04.png"),
 }
 
 const card_texture = await Shaku.assets.loadTexture("imgs/card.png");
@@ -101,7 +101,6 @@ let points = 0;
 
 let hovering_card: VegCard | null = null;
 let grabbing_card: VegCard | null = null;
-let hovering_tile: Vector2 | null;
 
 let board_floor = Grid2D.init<Sprite>(CONFIG.board_w, CONFIG.board_h, (i, j) => {
     let res = new Sprite(hole_texture);
@@ -163,7 +162,7 @@ function posOverCard(pos: Vector2, card: VegCard) {
 
 function tileUnderPos(pos: Vector2): Vector2 | null {
     let i = Math.floor((pos.x - CONFIG.board_x) / CONFIG.tile_s + .5);
-    let j = Math.floor((pos.y - CONFIG.board_y) / CONFIG.tile_s);
+    let j = Math.floor((pos.y - CONFIG.board_y) / CONFIG.tile_s + .5);
     if (i < 0 || i >= CONFIG.board_w || j < 0 || j >= CONFIG.board_h) return null;
     return new Vector2(i, j);
 }
@@ -249,7 +248,7 @@ function step() {
             }
         }
     } else {
-        hovering_tile = tileUnderPos(Shaku.input.mousePosition);
+        let hovering_tile = tileUnderPos(Shaku.input.mousePosition);
         if (hovering_tile && board.getV(hovering_tile)) hovering_tile = null;
         if (Shaku.input.mouseReleased()) {
             // stop grabbing
@@ -281,6 +280,7 @@ function step() {
                     "rotation": 0,
                 }).duration(.2).play();
             }
+            cursor_spr = cursor_default_spr;
             grabbing_card = null;
         } else {
             grabbing_card.sprite.rotation = Math.sin(Shaku.gameTime.elapsed * 5) * .1;
@@ -294,6 +294,7 @@ function step() {
         addVegCard();
     }
     if (Shaku.input.pressed("1") || Shaku.input.pressed("2")) {
+        let hovering_tile = tileUnderPos(Shaku.input.mousePosition);
         let delta = Shaku.input.pressed("1") ? -1 : 1
         if (hovering_card) {
             hovering_card.count += delta;
@@ -307,6 +308,7 @@ function step() {
         }
     }
     if (Shaku.input.pressed("3")) {
+        let hovering_tile = tileUnderPos(Shaku.input.mousePosition);
         if (hovering_card) {
             veg_hand = veg_hand.filter(x => x !== hovering_card);
             veg_hand.forEach((card, k) => {

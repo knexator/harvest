@@ -10556,15 +10556,15 @@ import_shaku.default.startFrame();
 import_shaku.default.gfx.clear(import_shaku.default.utils.Color.cornflowerblue);
 import_shaku.default.endFrame();
 function randomVeg() {
-  return [0 /* CABBAGE */, 1 /* CARROT */, 2 /* KALE */, 3 /* PUMPKIN */, 4 /* POTATO */][randint(CONFIG.n_types)];
+  return [0 /* CABBAGE */, 1 /* CARROT */, 2 /* KALE */, 3 /* POTATO */, 4 /* PUMPKIN */][randint(CONFIG.n_types)];
 }
 var main_font = await import_shaku.default.assets.loadMsdfFontTexture("fonts/Arial.ttf", { jsonUrl: "fonts/Arial.json", textureUrl: "fonts/Arial.png" });
 var vegetable_textures = {
   0: await import_shaku.default.assets.loadTexture("imgs/cabbage_04.png"),
   1: await import_shaku.default.assets.loadTexture("imgs/carrot_04.png"),
   2: await import_shaku.default.assets.loadTexture("imgs/kale_04.png"),
-  3: await import_shaku.default.assets.loadTexture("imgs/pumpkin_04.png"),
-  4: await import_shaku.default.assets.loadTexture("imgs/potato_04.png")
+  3: await import_shaku.default.assets.loadTexture("imgs/potato_04.png"),
+  4: await import_shaku.default.assets.loadTexture("imgs/pumpkin_04.png")
 };
 var card_texture = await import_shaku.default.assets.loadTexture("imgs/card.png");
 var cursor_default = await import_shaku.default.assets.loadTexture("imgs/cursor_02.png");
@@ -10579,7 +10579,6 @@ for (let k = 0; k < CONFIG.veg_hand_size; k++) {
 var points = 0;
 var hovering_card = null;
 var grabbing_card = null;
-var hovering_tile;
 var board_floor = Grid2D.init(CONFIG.board_w, CONFIG.board_h, (i, j) => {
   let res = new import_sprite.default(hole_texture);
   res.size.mulSelf(CONFIG.pixel_scaling);
@@ -10627,7 +10626,7 @@ function posOverCard(pos, card) {
 }
 function tileUnderPos(pos) {
   let i = Math.floor((pos.x - CONFIG.board_x) / CONFIG.tile_s + 0.5);
-  let j = Math.floor((pos.y - CONFIG.board_y) / CONFIG.tile_s);
+  let j = Math.floor((pos.y - CONFIG.board_y) / CONFIG.tile_s + 0.5);
   if (i < 0 || i >= CONFIG.board_w || j < 0 || j >= CONFIG.board_h)
     return null;
   return new import_vector2.default(i, j);
@@ -10701,7 +10700,7 @@ function step() {
       }
     }
   } else {
-    hovering_tile = tileUnderPos(import_shaku.default.input.mousePosition);
+    let hovering_tile = tileUnderPos(import_shaku.default.input.mousePosition);
     if (hovering_tile && board.getV(hovering_tile))
       hovering_tile = null;
     if (import_shaku.default.input.mouseReleased()) {
@@ -10733,6 +10732,7 @@ function step() {
           "rotation": 0
         }).duration(0.2).play();
       }
+      cursor_spr = cursor_default_spr;
       grabbing_card = null;
     } else {
       grabbing_card.sprite.rotation = Math.sin(import_shaku.default.gameTime.elapsed * 5) * 0.1;
@@ -10743,6 +10743,7 @@ function step() {
     addVegCard();
   }
   if (import_shaku.default.input.pressed("1") || import_shaku.default.input.pressed("2")) {
+    let hovering_tile = tileUnderPos(import_shaku.default.input.mousePosition);
     let delta = import_shaku.default.input.pressed("1") ? -1 : 1;
     if (hovering_card) {
       hovering_card.count += delta;
@@ -10756,6 +10757,7 @@ function step() {
     }
   }
   if (import_shaku.default.input.pressed("3")) {
+    let hovering_tile = tileUnderPos(import_shaku.default.input.mousePosition);
     if (hovering_card) {
       veg_hand = veg_hand.filter((x) => x !== hovering_card);
       veg_hand.forEach((card, k) => {
