@@ -81,9 +81,9 @@ function randomVeg() {
 const main_font = await Shaku.assets.loadMsdfFontTexture('fonts/Arial.ttf', { jsonUrl: 'fonts/Arial.json', textureUrl: 'fonts/Arial.png' });
 
 const vegetable_textures: Record<Veg, TextureAsset> = {
-    0: await Shaku.assets.loadTexture("imgs/carrot_04.png"),
-    1: await Shaku.assets.loadTexture("imgs/kale_04.png"),
-    2: await Shaku.assets.loadTexture("imgs/pumpkin_04.png"),
+    0: await Shaku.assets.loadTexture("imgs/carrot.png"),
+    1: await Shaku.assets.loadTexture("imgs/kale.png"),
+    2: await Shaku.assets.loadTexture("imgs/pumpkin.png"),
     3: await Shaku.assets.loadTexture("imgs/cauliflower_04.png"),
     4: await Shaku.assets.loadTexture("imgs/cabbage_04.png"),
     5: await Shaku.assets.loadTexture("imgs/potato_04.png"),
@@ -148,6 +148,8 @@ let points = 0;
 let hovering_card: Card | null = null;
 let grabbing_card: Card | null = null;
 
+let card_grab_offset = new Vector2(-20, -40).mul(CONFIG.card_scaling);
+
 let board_floor = Grid2D.init<Sprite>(CONFIG.board_w, CONFIG.board_h, (i, j) => {
     let res = new Sprite(hole_texture);
     res.size.mulSelf(CONFIG.pixel_scaling);
@@ -158,8 +160,8 @@ let board_floor = Grid2D.init<Sprite>(CONFIG.board_w, CONFIG.board_h, (i, j) => 
 
 const numbers: SpritesGroup[] = [];
 for (let k = 0; k < 10; k++) {
-    let cur = Shaku.gfx.buildText(main_font, `x${k}`, 10, Color.black);
-    cur._sprites.forEach(spr => spr.position.addSelf(1, 1));
+    let cur = Shaku.gfx.buildText(main_font, k.toString(), 7, Color.black);
+    cur._sprites.forEach(spr => spr.position.addSelf(-1.5, -9));
     numbers.push(cur);
 }
 
@@ -168,6 +170,8 @@ const DIRS = [Vector2.right, Vector2.down, Vector2.left, Vector2.up];
 let hover_offset = 0;
 
 const pixel_effect = Shaku.gfx.createEffect(PixelEffect);
+
+let particles: Sprite[] = [];
 
 const cursor_default_spr = new Sprite(cursor_default);
 cursor_default_spr.origin = Vector2.zero;
@@ -179,6 +183,7 @@ cursor_grabbed_spr.size.mulSelf(CONFIG.pixel_scaling);
 
 let cursor_spr = cursor_default_spr;
 
+let points_pos = new Vector2(Shaku.gfx.canvas.width * .75, Shaku.gfx.canvas.height * .9);
 let points_spr: SpritesGroup;
 refreshPoints();
 
@@ -245,35 +250,66 @@ function posOverCard(pos: Vector2, card: Card) {
 }
 
 function tileUnderPos(pos: Vector2): Vector2 | null {
+    pos = pos.add(card_grab_offset);
     let i = Math.floor((pos.x - CONFIG.board_x) / CONFIG.card_w + .5);
     let j = Math.floor((pos.y - CONFIG.board_y) / CONFIG.card_h + .5);
     if (i < 0 || i >= CONFIG.board_w || j < 0 || j >= CONFIG.board_h) return null;
     return new Vector2(i, j);
 }
 
+function createScoreSprite(card: Exclude<VegCard, false>, index: number, to_crate: boolean, extra_delay: number) {
+    let veg_sprite = new Sprite(vegetable_textures[card.vegetable]);
+    veg_sprite.setSourceFromSpritesheet(Vector2.zero, Vector2.one, 1, true);
+    veg_sprite.origin.set(.5, 1);
+    veg_sprite.size.mulSelf(CONFIG.card_scaling);
+    veg_sprite.position.copy(card.sprite.position.add(0, CONFIG.card_scaling * 30));
+    particles.push(veg_sprite);
+
+    let original_size = veg_sprite.size.clone();
+    let p0 = veg_sprite.position.clone() as Vector2;
+    let pE = points_pos;
+    let p1 = Vector2.lerp(p0, pE, .5);
+    p1.addSelf(Vector2.random.mulSelf(100)).addSelf(-200, -200);
+    new Animator(veg_sprite).onUpdate((t: number) => {
+        veg_sprite.position.copy(bezier3((1 - (1 - t) * (1 - t)) / 2 + t / 2, p0, p1, pE));
+        veg_sprite.size = original_size.mul((t + .5) * (t - 1.35) * -2.5);
+    }).duration(.40).delay(extra_delay / .40 + .1 + index * .2).play().then(() => {
+        particles = particles.filter(x => x != veg_sprite);
+    });
+}
+
+function activateCard(pos: Vector2, to_crate: boolean, extra_delay: number) {
+    let connected_group = connectedGroup(pos);
+    if (connected_group.length > 1) {
+        // todo: anim stuff to points
+        points += connected_group.length;
+        refreshPoints();
+        connected_group.forEach((p, index) => {
+            let tile = board.getV(p) as Exclude<VegCard, false>;
+            createScoreSprite(tile, index, to_crate, extra_delay);
+            console.log("delay: ", extra_delay, "pos", pos.x, pos.y, "index", index);
+            if (tile.count > 1) {
+                new Animator(tile.sprite).to({ "rotation": tile.sprite.rotation * (-.9 + Math.random() * .2) })
+                    .delay(extra_delay / .05 + .1 + index * .2).duration(.05).play().then(() => {
+                        tile.count -= 1;
+                    });
+            } else {
+                new Animator(tile.sprite).to({ "position": tile.sprite.position.add(0, Shaku.gfx.canvas.height) }).smoothDamp(true)
+                    .duration(.35).delay(extra_delay / .35 + .1 + index * .2).play().then(() => {
+                        board.setV(p, null);
+                    });
+            }
+        });
+        return true;
+    }
+    return false;
+}
+
 function onPlaceCard(pos: Vector2) {
     let placed = board.getV(pos);
     if (!placed) throw new Error("couldn't get the card placed just now");
     if (placed.type === "veg") {
-        let connected_group = connectedGroup(pos);
-        if (connected_group.length > 1) {
-            // todo: anim stuff to points
-            points += connected_group.length;
-            refreshPoints();
-            connected_group.forEach(p => {
-                let tile = board.getV(p) as Exclude<VegCard, false>;
-                if (tile.count > 1) {
-                    tile.count -= 1;
-                    // todo: better anim
-                    new Animator(tile.sprite).from({ "rotation": Math.PI * 2 }).to({ "rotation": 0 }).duration(.3).play();
-                } else {
-                    // todo: better anim
-                    new Animator(tile.sprite).from({ "rotation": Math.PI * 2 }).to({ "rotation": 0 }).duration(.3).play().then(() => {
-                        board.setV(p, null);
-                    });
-                }
-            });
-        }
+        activateCard(pos, false, 0)
     } else if (placed.type === "crate") {
         board.setV(crate_pos, null);
         crate_pos = pos;
@@ -282,24 +318,7 @@ function onPlaceCard(pos: Vector2) {
             let cur_pos = pos.add(DIRS[k]);
             let tile = board.getV(cur_pos, null);
             if (tile && tile.count === placed.count) {
-                let connected_group = connectedGroup(cur_pos);
-                if (connected_group.length > 1) {
-                    // todo: anim stuff to points
-                    points += connected_group.length;
-                    refreshPoints();
-                    connected_group.forEach(p => {
-                        let tile = board.getV(p) as Exclude<VegCard, false>;
-                        if (tile.count > 1) {
-                            tile.count -= 1;
-                            // todo: better anim
-                            new Animator(tile.sprite).from({ "rotation": Math.PI * 2 }).to({ "rotation": 0 }).duration(.3).delay(delay).play();
-                        } else {
-                            // todo: better anim
-                            new Animator(tile.sprite).from({ "rotation": Math.PI * 2 }).to({ "rotation": 0 }).duration(.3).delay(delay).play().then(() => {
-                                board.setV(p, null);
-                            });
-                        }
-                    });
+                if (activateCard(cur_pos, true, delay)) {
                     delay += .5;
                 }
             }
@@ -309,7 +328,7 @@ function onPlaceCard(pos: Vector2) {
 
 function refreshPoints() {
     points_spr = Shaku.gfx.buildText(main_font, `Points: ${points}`, 20, Color.black);
-    points_spr.position.set(Shaku.gfx.canvas.width * .75, Shaku.gfx.canvas.height * .9);
+    points_spr.position.copy(points_pos);
 }
 
 function connectedGroup(pos: Vector2): Vector2[] {
@@ -406,7 +425,7 @@ function step() {
                 grabbing_card = null;
             } else {
                 grabbing_card.sprite.rotation = Math.sin((Shaku.gameTime.elapsed - hover_offset) * 5) * .1;
-                grabbing_card.sprite.position.copy(Shaku.input.mousePosition);
+                grabbing_card.sprite.position.copy(Shaku.input.mousePosition.add(card_grab_offset));
             }
         }
 
@@ -496,10 +515,15 @@ function step() {
         let cur_num = numbers[card.count];
         cur_num.position.copy(card.sprite.position);
         cur_num.rotation = card.sprite.rotation;
-        cur_num.scale.copy(card.sprite.scale);
+        // cur_num.scale.copy(card.sprite.scale);
+        cur_num.scale.set(CONFIG.pixel_scaling, CONFIG.pixel_scaling);
         Shaku.gfx.drawGroup(cur_num, false);
         Shaku.gfx.useEffect(pixel_effect);
     })
+    particles.forEach(x => {
+        Shaku.gfx.drawSprite(x);
+        console.log("particle");
+    });
 
     Shaku.gfx.useEffect(Shaku.gfx.builtinEffects.MsdfFont);
     Shaku.gfx.drawGroup(points_spr, false);
@@ -541,6 +565,14 @@ function moveTowards(cur_val: number, target_val: number, max_delta: number): nu
     } else {
         return target_val;
     }
+}
+
+// from https://stackoverflow.com/questions/6711707/draw-a-quadratic-b%C3%A9zier-curve-through-three-given-points
+function bezier3(t: number, p0: Vector2, p1: Vector2, p2: Vector2) {
+    let result = p2.mul(t * t);
+    result.addSelf(p1.mul(2 * t * (1 - t)));
+    result.addSelf(p0.mul((1 - t) * (1 - t)));
+    return result;
 }
 
 async function loadAsciiTexture(ascii: string, colors: (string | Color)[]): Promise<TextureAsset> {
