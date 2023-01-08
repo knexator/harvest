@@ -4,8 +4,8 @@ var __getOwnPropDesc = Object.getOwnPropertyDescriptor;
 var __getOwnPropNames = Object.getOwnPropertyNames;
 var __getProtoOf = Object.getPrototypeOf;
 var __hasOwnProp = Object.prototype.hasOwnProperty;
-var __commonJS = (cb, mod2) => function __require() {
-  return mod2 || (0, cb[__getOwnPropNames(cb)[0]])((mod2 = { exports: {} }).exports, mod2), mod2.exports;
+var __commonJS = (cb, mod) => function __require() {
+  return mod || (0, cb[__getOwnPropNames(cb)[0]])((mod = { exports: {} }).exports, mod), mod.exports;
 };
 var __copyProps = (to, from, except, desc) => {
   if (from && typeof from === "object" || typeof from === "function") {
@@ -15,9 +15,9 @@ var __copyProps = (to, from, except, desc) => {
   }
   return to;
 };
-var __toESM = (mod2, isNodeMode, target) => (target = mod2 != null ? __create(__getProtoOf(mod2)) : {}, __copyProps(
-  isNodeMode || !mod2 || !mod2.__esModule ? __defProp(target, "default", { value: mod2, enumerable: true }) : target,
-  mod2
+var __toESM = (mod, isNodeMode, target) => (target = mod != null ? __create(__getProtoOf(mod)) : {}, __copyProps(
+  isNodeMode || !mod || !mod.__esModule ? __defProp(target, "default", { value: mod, enumerable: true }) : target,
+  mod
 ));
 
 // ../Shaku/lib/manager.js
@@ -10595,7 +10595,7 @@ var CONFIG = {
   board_h: 5,
   max_count: 6,
   veg_hand_size: 6,
-  n_types: 4,
+  n_types: 3,
   card_scaling: 1.15,
   pixel_scaling: 4,
   card_w: 62 + 10,
@@ -10644,21 +10644,6 @@ var cursor_grabbed = await import_shaku.default.assets.loadTexture("imgs/hand_cl
 var hole_texture = await import_shaku.default.assets.loadTexture("imgs/soil_00.png");
 var crate_texture = await import_shaku.default.assets.loadTexture("imgs/crate_base.png");
 var board = Grid2D.init(CONFIG.board_w, CONFIG.board_h, (i, j) => null);
-var crate_pos = new import_vector2.default(0, 0);
-{
-  let original_crate_card = {
-    type: "crate",
-    sprite: new import_sprites_group.default(),
-    count: 4
-  };
-  let asdf = new import_sprite.default(import_shaku.default.gfx.whiteTexture);
-  asdf.size.set(CONFIG.card_w * 0.9 / CONFIG.pixel_scaling, CONFIG.card_h * 0.9 / CONFIG.pixel_scaling);
-  original_crate_card.sprite.add(asdf);
-  original_crate_card.sprite.add(new import_sprite.default(crate_texture));
-  original_crate_card.sprite.scale.mulSelf(CONFIG.pixel_scaling);
-  original_crate_card.sprite.position.set(CONFIG.board_x + CONFIG.card_w * crate_pos.x, CONFIG.board_y + CONFIG.card_h * crate_pos.y);
-  board.setV(crate_pos, original_crate_card);
-}
 var hand = [];
 for (let k = 0; k < CONFIG.veg_hand_size; k++) {
   addCard();
@@ -10710,7 +10695,7 @@ function addCrateCard() {
   let new_crate_card = {
     type: "crate",
     sprite: new import_sprites_group.default(),
-    count: 1 + mod(board.getV(crate_pos).count - 2, CONFIG.max_count)
+    count: 1 + randint(CONFIG.max_count)
   };
   let asdf = new import_sprite.default(import_shaku.default.gfx.whiteTexture);
   asdf.size.set((CONFIG.card_w - 10) / CONFIG.pixel_scaling, (CONFIG.card_h - 10) / CONFIG.pixel_scaling);
@@ -10750,7 +10735,7 @@ function tileUnderPos(pos) {
     return null;
   return new import_vector2.default(i, j);
 }
-function createScoreSprite(card, index, to_crate, extra_delay) {
+function createScoreSprite(card, index, crate_pos, extra_delay) {
   let veg_sprite = new import_sprite.default(vegetable_textures[card.vegetable]);
   veg_sprite.setSourceFromSpritesheet(import_vector2.default.zero, import_vector2.default.one, 1, true);
   veg_sprite.origin.set(0.5, 1);
@@ -10759,7 +10744,7 @@ function createScoreSprite(card, index, to_crate, extra_delay) {
   particles.push(veg_sprite);
   let original_size = veg_sprite.size.clone();
   let p0 = veg_sprite.position.clone();
-  let pE = points_pos;
+  let pE = crate_pos === null ? points_pos : crate_pos;
   let p1 = import_vector2.default.lerp(p0, pE, 0.5);
   p1.addSelf(import_vector2.default.random.mulSelf(100)).addSelf(-200, -200);
   new import_animator.default(veg_sprite).onUpdate((t) => {
@@ -10769,21 +10754,20 @@ function createScoreSprite(card, index, to_crate, extra_delay) {
     particles = particles.filter((x) => x != veg_sprite);
   });
 }
-function activateCard(pos, to_crate, extra_delay) {
+function activateCard(pos, crate_pos, extra_delay) {
   let connected_group = connectedGroup(pos);
   if (connected_group.length > 1) {
     points += connected_group.length;
     refreshPoints();
     connected_group.forEach((p, index) => {
       let tile = board.getV(p);
-      createScoreSprite(tile, index, to_crate, extra_delay);
-      console.log("delay: ", extra_delay, "pos", pos.x, pos.y, "index", index);
+      createScoreSprite(tile, index, crate_pos, extra_delay);
       if (tile.count > 1) {
         new import_animator.default(tile.sprite).to({ "rotation": tile.sprite.rotation * (-0.9 + Math.random() * 0.2) }).delay(extra_delay / 0.05 + 0.1 + index * 0.2).duration(0.05).play().then(() => {
           tile.count -= 1;
         });
       } else {
-        new import_animator.default(tile.sprite).to({ "position": tile.sprite.position.add(0, import_shaku.default.gfx.canvas.height) }).smoothDamp(true).duration(0.35).delay(extra_delay / 0.35 + 0.1 + index * 0.2).play().then(() => {
+        new import_animator.default(tile.sprite).to({ "position": tile.sprite.position.add(0, import_shaku.default.gfx.canvas.height) }).smoothDamp(true).duration(0.35).delay(extra_delay / 0.35 + 0.3 + index * 0.2).play().then(() => {
           board.setV(p, null);
         });
       }
@@ -10797,16 +10781,14 @@ function onPlaceCard(pos) {
   if (!placed)
     throw new Error("couldn't get the card placed just now");
   if (placed.type === "veg") {
-    activateCard(pos, false, 0);
+    activateCard(pos, null, 0);
   } else if (placed.type === "crate") {
-    board.setV(crate_pos, null);
-    crate_pos = pos;
     let delay = 0;
     for (let k = 0; k < 4; k++) {
       let cur_pos = pos.add(DIRS[k]);
       let tile = board.getV(cur_pos, null);
       if (tile && tile.count === placed.count) {
-        if (activateCard(cur_pos, true, delay)) {
+        if (activateCard(cur_pos, pos, delay)) {
           delay += 0.5;
         }
       }
@@ -10841,6 +10823,7 @@ function connectedGroup(pos) {
   return group;
 }
 var in_intro = true;
+var last_hovering_tile = null;
 function step() {
   import_shaku.default.startFrame();
   import_shaku.default.gfx.clear(background_color);
@@ -10872,6 +10855,21 @@ function step() {
       let hovering_tile = tileUnderPos(import_shaku.default.input.mousePosition);
       if (hovering_tile && board.getV(hovering_tile))
         hovering_tile = null;
+      if (hovering_tile && (last_hovering_tile === null || !last_hovering_tile.equals(hovering_tile))) {
+        if (grabbing_card.type === "veg") {
+          board.setV(hovering_tile, grabbing_card);
+          let connected_group = connectedGroup(hovering_tile);
+          if (connected_group.length > 1) {
+            connected_group.forEach((p, index) => {
+              let tile = board.getV(p);
+              tile.sprite.rotation += Math.sin(index * 0.7 + import_shaku.default.gameTime.elapsed * 10) * import_shaku.default.gameTime.delta * 0.5;
+              tile.sprite.rotation *= 0.99;
+            });
+          }
+          board.setV(hovering_tile, null);
+        } else if (grabbing_card.type === "crate") {
+        }
+      }
       if (import_shaku.default.input.mouseReleased()) {
         let card_index = hand.indexOf(grabbing_card);
         if (hovering_tile) {
@@ -10976,7 +10974,6 @@ function step() {
   });
   particles.forEach((x) => {
     import_shaku.default.gfx.drawSprite(x);
-    console.log("particle");
   });
   import_shaku.default.gfx.useEffect(import_shaku.default.gfx.builtinEffects.MsdfFont);
   import_shaku.default.gfx.drawGroup(points_spr, false);
@@ -10989,9 +10986,6 @@ function step() {
 step();
 function randint(n_options) {
   return Math.floor(Math.random() * n_options);
-}
-function mod(n, m) {
-  return (n % m + m) % m;
 }
 function bezier3(t, p0, p1, p2) {
   let result2 = p2.mul(t * t);

@@ -20,7 +20,7 @@ const CONFIG = {
     board_h: 5,
     max_count: 6,
     veg_hand_size: 6,
-    n_types: 4,
+    n_types: 3,
 
     card_scaling: 1.15,
     pixel_scaling: 4,
@@ -121,7 +121,7 @@ const crate_texture = await Shaku.assets.loadTexture("imgs/crate_base.png");
 
 let board = Grid2D.init<Card | null>(CONFIG.board_w, CONFIG.board_h, (i, j) => null);
 
-let crate_pos = new Vector2(0, 0);
+/*let crate_pos = new Vector2(0, 0);
 {
     let original_crate_card: CrateCard = {
         type: "crate",
@@ -136,7 +136,7 @@ let crate_pos = new Vector2(0, 0);
 
     original_crate_card.sprite.position.set(CONFIG.board_x + CONFIG.card_w * crate_pos.x, CONFIG.board_y + CONFIG.card_h * crate_pos.y);
     board.setV(crate_pos, original_crate_card);
-}
+}*/
 
 let hand: Card[] = [];
 for (let k = 0; k < CONFIG.veg_hand_size; k++) {
@@ -205,7 +205,7 @@ function addCrateCard() {
     let new_crate_card: CrateCard = {
         type: "crate",
         sprite: new SpritesGroup(),
-        count: 1 + mod((board.getV(crate_pos) as CrateCard).count - 2, CONFIG.max_count),
+        count: 1 + randint(CONFIG.max_count),
     }
     let asdf = new Sprite(Shaku.gfx.whiteTexture);
     asdf.size.set((CONFIG.card_w - 10) / CONFIG.pixel_scaling, (CONFIG.card_h - 10) / CONFIG.pixel_scaling);
@@ -257,7 +257,7 @@ function tileUnderPos(pos: Vector2): Vector2 | null {
     return new Vector2(i, j);
 }
 
-function createScoreSprite(card: Exclude<VegCard, false>, index: number, to_crate: boolean, extra_delay: number) {
+function createScoreSprite(card: Exclude<VegCard, false>, index: number, crate_pos: Vector2 | null, extra_delay: number) {
     let veg_sprite = new Sprite(vegetable_textures[card.vegetable]);
     veg_sprite.setSourceFromSpritesheet(Vector2.zero, Vector2.one, 1, true);
     veg_sprite.origin.set(.5, 1);
@@ -267,7 +267,7 @@ function createScoreSprite(card: Exclude<VegCard, false>, index: number, to_crat
 
     let original_size = veg_sprite.size.clone();
     let p0 = veg_sprite.position.clone() as Vector2;
-    let pE = points_pos;
+    let pE = (crate_pos === null) ? points_pos : crate_pos;
     let p1 = Vector2.lerp(p0, pE, .5);
     p1.addSelf(Vector2.random.mulSelf(100)).addSelf(-200, -200);
     new Animator(veg_sprite).onUpdate((t: number) => {
@@ -278,7 +278,7 @@ function createScoreSprite(card: Exclude<VegCard, false>, index: number, to_crat
     });
 }
 
-function activateCard(pos: Vector2, to_crate: boolean, extra_delay: number) {
+function activateCard(pos: Vector2, crate_pos: Vector2 | null, extra_delay: number) {
     let connected_group = connectedGroup(pos);
     if (connected_group.length > 1) {
         // todo: anim stuff to points
@@ -286,8 +286,7 @@ function activateCard(pos: Vector2, to_crate: boolean, extra_delay: number) {
         refreshPoints();
         connected_group.forEach((p, index) => {
             let tile = board.getV(p) as Exclude<VegCard, false>;
-            createScoreSprite(tile, index, to_crate, extra_delay);
-            console.log("delay: ", extra_delay, "pos", pos.x, pos.y, "index", index);
+            createScoreSprite(tile, index, crate_pos, extra_delay);
             if (tile.count > 1) {
                 new Animator(tile.sprite).to({ "rotation": tile.sprite.rotation * (-.9 + Math.random() * .2) })
                     .delay(extra_delay / .05 + .1 + index * .2).duration(.05).play().then(() => {
@@ -295,7 +294,7 @@ function activateCard(pos: Vector2, to_crate: boolean, extra_delay: number) {
                     });
             } else {
                 new Animator(tile.sprite).to({ "position": tile.sprite.position.add(0, Shaku.gfx.canvas.height) }).smoothDamp(true)
-                    .duration(.35).delay(extra_delay / .35 + .1 + index * .2).play().then(() => {
+                    .duration(.35).delay(extra_delay / .35 + .3 + index * .2).play().then(() => {
                         board.setV(p, null);
                     });
             }
@@ -309,16 +308,14 @@ function onPlaceCard(pos: Vector2) {
     let placed = board.getV(pos);
     if (!placed) throw new Error("couldn't get the card placed just now");
     if (placed.type === "veg") {
-        activateCard(pos, false, 0)
+        activateCard(pos, null, 0)
     } else if (placed.type === "crate") {
-        board.setV(crate_pos, null);
-        crate_pos = pos;
         let delay = 0;
         for (let k = 0; k < 4; k++) {
             let cur_pos = pos.add(DIRS[k]);
             let tile = board.getV(cur_pos, null);
             if (tile && tile.count === placed.count) {
-                if (activateCard(cur_pos, true, delay)) {
+                if (activateCard(cur_pos, pos, delay)) {
                     delay += .5;
                 }
             }
@@ -358,6 +355,8 @@ function connectedGroup(pos: Vector2): Vector2[] {
 // let intro_time_left = -1;
 let in_intro = true;
 
+let last_hovering_tile: Vector2 | null = null;
+
 // do a single main loop step and request the next step
 function step() {
     // start a new frame and clear screen
@@ -393,6 +392,22 @@ function step() {
         } else {
             let hovering_tile = tileUnderPos(Shaku.input.mousePosition);
             if (hovering_tile && board.getV(hovering_tile)) hovering_tile = null;
+            if (hovering_tile && (last_hovering_tile === null || !last_hovering_tile.equals(hovering_tile))) {
+                if (grabbing_card.type === "veg") {
+                    board.setV(hovering_tile, grabbing_card);
+                    let connected_group = connectedGroup(hovering_tile);
+                    if (connected_group.length > 1) {
+                        connected_group.forEach((p, index) => {
+                            let tile = board.getV(p) as Exclude<VegCard, false>;
+                            tile.sprite.rotation += Math.sin(index * .7 + Shaku.gameTime.elapsed * 10) * Shaku.gameTime.delta * .5;
+                            tile.sprite.rotation *= .99;
+                        });
+                    }
+                    board.setV(hovering_tile, null);
+                } else if (grabbing_card.type === "crate") {
+
+                }
+            }
             if (Shaku.input.mouseReleased()) {
                 // stop grabbing
                 let card_index = hand.indexOf(grabbing_card);
@@ -522,7 +537,6 @@ function step() {
     })
     particles.forEach(x => {
         Shaku.gfx.drawSprite(x);
-        console.log("particle");
     });
 
     Shaku.gfx.useEffect(Shaku.gfx.builtinEffects.MsdfFont);
@@ -578,7 +592,6 @@ function bezier3(t: number, p0: Vector2, p1: Vector2, p2: Vector2) {
 async function loadAsciiTexture(ascii: string, colors: (string | Color)[]): Promise<TextureAsset> {
 
     let rows = ascii.trim().split("\n").map(x => x.trim())
-    console.log(rows)
     let height = rows.length
     let width = rows[0].length
 
