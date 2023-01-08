@@ -7,10 +7,62 @@
         canvas:focus {
             outline: none;
         }
+
+        #slide_up {
+            background-color: #B86F50;
+            position: absolute;
+            height: 70vh;
+            width: 100vw;
+            top: 0;
+
+            text-align: center;
+            font-size: 10vw;
+            line-height: 80vh;
+        }
+
+        #slide_down {
+            background-color: #733E39;
+            position: absolute;
+            height: 30vh;
+            width: 100vw;
+            top: 70vh;
+
+            text-align: center;
+            font-size: 6vw;
+            line-height: 20vh;
+        }
+
+        #slide_up.animating {
+            animation-name: intro_slide_up;
+            animation-duration: 1s;
+            animation-fill-mode: forwards;
+        }
+
+        #slide_down.animating {
+            animation-name: intro_slide_down;
+            animation-duration: 1s;
+            animation-fill-mode: forwards;
+        }
+
+        @keyframes intro_slide_up {
+            to {
+                top: -100vh;
+            }
+        }
+
+        @keyframes intro_slide_down {
+            to {
+                top: 110vh;
+            }
+        }
     </style>
 </head>
 
 <body style="height: 100%; width: 100%; position: absolute; margin: 0; background-color: gray">
+    <div id="intro" style="z-index: 1; position: absolute; pointer-events: none;">
+        <div id="slide_up">Harvest</div>
+        <div id="slide_down">Click to start</div>
+    </div>
     <script src="js/main.js" type="module"></script>
 </body>
 

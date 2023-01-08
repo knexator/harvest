@@ -10615,9 +10615,6 @@ await import_shaku.default.init([import_shaku.default.assets, import_shaku.defau
 document.body.appendChild(import_shaku.default.gfx.canvas);
 import_shaku.default.gfx.setResolution(800, 600, true);
 import_shaku.default.gfx.centerCanvas();
-import_shaku.default.startFrame();
-import_shaku.default.gfx.clear(import_shaku.default.utils.Color.cornflowerblue);
-import_shaku.default.endFrame();
 function randomVeg() {
   return [0 /* CAULIFLOWER */, 1 /* CABBAGE */, 2 /* CARROT */, 3 /* KALE */, 4 /* POTATO */, 5 /* PUMPKIN */][randint(CONFIG.n_types)];
 }
@@ -10672,6 +10669,7 @@ for (let k = 0; k < 10; k++) {
   numbers.push(cur);
 }
 var DIRS = [import_vector2.default.right, import_vector2.default.down, import_vector2.default.left, import_vector2.default.up];
+var hover_offset = 0;
 var pixel_effect = import_shaku.default.gfx.createEffect(PixelEffect);
 var cursor_default_spr = new import_sprite.default(cursor_default);
 cursor_default_spr.origin = import_vector2.default.zero;
@@ -10681,7 +10679,6 @@ cursor_hover_spr.size.mulSelf(CONFIG.pixel_scaling);
 var cursor_grabbed_spr = new import_sprite.default(cursor_grabbed);
 cursor_grabbed_spr.size.mulSelf(CONFIG.pixel_scaling);
 var cursor_spr = cursor_default_spr;
-document.querySelector("canvas").style.cursor = "none";
 var points_spr;
 refreshPoints();
 var background_color = import_color.default.fromHex("#E4A672");
@@ -10689,7 +10686,7 @@ function baseCardPos(index) {
   return new import_vector2.default(CONFIG.card_x, CONFIG.board_y + CONFIG.card_h * index);
 }
 function addCard() {
-  if (Math.random() < 0.99 && hand.every((x) => x.type !== "crate")) {
+  if (Math.random() < 0.1 && hand.every((x) => x.type !== "crate")) {
     addCrateCard();
   } else {
     addVegCard();
@@ -10817,100 +10814,111 @@ function connectedGroup(pos) {
   }
   return group;
 }
+var in_intro = true;
 function step() {
   import_shaku.default.startFrame();
   import_shaku.default.gfx.clear(background_color);
   cursor_spr.position.copy(import_shaku.default.input.mousePosition);
-  if (!grabbing_card) {
-    let cur_hovering_card = hand.find((card) => posOverCard(import_shaku.default.input.mousePosition, card)) || null;
-    if (!hovering_card) {
-      if (cur_hovering_card) {
-        hovering_card = cur_hovering_card;
-        cursor_spr = cursor_hover_spr;
+  if (!in_intro) {
+    if (!grabbing_card) {
+      let cur_hovering_card = hand.find((card) => posOverCard(import_shaku.default.input.mousePosition, card)) || null;
+      if (!hovering_card) {
+        if (cur_hovering_card) {
+          hovering_card = cur_hovering_card;
+          hover_offset = import_shaku.default.gameTime.elapsed;
+          cursor_spr = cursor_hover_spr;
+        }
+      } else {
+        if (cur_hovering_card !== hovering_card) {
+          new import_animator.default(hovering_card.sprite).to({ rotation: 0 }).duration(0.05).play();
+          hovering_card = null;
+          cursor_spr = cursor_default_spr;
+        } else {
+          hovering_card.sprite.rotation = Math.sin((import_shaku.default.gameTime.elapsed - hover_offset) * 5) * 0.1;
+          if (import_shaku.default.input.mousePressed()) {
+            grabbing_card = hovering_card;
+            hovering_card = null;
+            cursor_spr = cursor_grabbed_spr;
+          }
+        }
       }
     } else {
-      if (cur_hovering_card !== hovering_card) {
-        hovering_card.sprite.rotation = 0;
-        hovering_card = null;
+      let hovering_tile = tileUnderPos(import_shaku.default.input.mousePosition);
+      if (hovering_tile && board.getV(hovering_tile))
+        hovering_tile = null;
+      if (import_shaku.default.input.mouseReleased()) {
+        let card_index = hand.indexOf(grabbing_card);
+        if (hovering_tile) {
+          grabbing_card.sprite.position.set(CONFIG.board_x + CONFIG.card_w * hovering_tile.x, CONFIG.board_y + CONFIG.card_h * hovering_tile.y);
+          board.setV(hovering_tile, grabbing_card);
+          onPlaceCard(hovering_tile);
+          hand.splice(card_index, 1);
+          hand.forEach((card, k) => {
+            if (k < card_index)
+              return;
+            new import_animator.default(card.sprite).to({
+              "position": baseCardPos(k),
+              "rotation": 0
+            }).duration(0.2).play();
+          });
+        } else {
+          new import_animator.default(grabbing_card.sprite).to({
+            "position": baseCardPos(card_index),
+            "rotation": 0
+          }).duration(0.2).play();
+        }
         cursor_spr = cursor_default_spr;
+        grabbing_card = null;
       } else {
-        hovering_card.sprite.rotation = Math.sin(import_shaku.default.gameTime.elapsed * 5) * 0.1;
-        if (import_shaku.default.input.mousePressed()) {
-          grabbing_card = hovering_card;
-          hovering_card = null;
-          cursor_spr = cursor_grabbed_spr;
+        grabbing_card.sprite.rotation = Math.sin((import_shaku.default.gameTime.elapsed - hover_offset) * 5) * 0.1;
+        grabbing_card.sprite.position.copy(import_shaku.default.input.mousePosition);
+      }
+    }
+    if (import_shaku.default.input.pressed("space")) {
+      addCard();
+    }
+    if (import_shaku.default.input.pressed("1") || import_shaku.default.input.pressed("2")) {
+      let hovering_tile = tileUnderPos(import_shaku.default.input.mousePosition);
+      let delta = import_shaku.default.input.pressed("1") ? -1 : 1;
+      if (hovering_card) {
+        hovering_card.count += delta;
+      } else if (grabbing_card) {
+        grabbing_card.count += delta;
+      } else if (hovering_tile) {
+        let asdf = board.getV(hovering_tile);
+        if (asdf) {
+          asdf.count += delta;
         }
       }
     }
-  } else {
-    let hovering_tile = tileUnderPos(import_shaku.default.input.mousePosition);
-    if (hovering_tile && board.getV(hovering_tile))
-      hovering_tile = null;
-    if (import_shaku.default.input.mouseReleased()) {
-      let card_index = hand.indexOf(grabbing_card);
-      if (hovering_tile) {
-        grabbing_card.sprite.position.set(CONFIG.board_x + CONFIG.card_w * hovering_tile.x, CONFIG.board_y + CONFIG.card_h * hovering_tile.y);
-        board.setV(hovering_tile, grabbing_card);
-        onPlaceCard(hovering_tile);
-        hand.splice(card_index, 1);
+    if (import_shaku.default.input.pressed("3")) {
+      let hovering_tile = tileUnderPos(import_shaku.default.input.mousePosition);
+      if (hovering_card) {
+        hand = hand.filter((x) => x !== hovering_card);
         hand.forEach((card, k) => {
-          if (k < card_index)
-            return;
           new import_animator.default(card.sprite).to({
             "position": baseCardPos(k),
             "rotation": 0
           }).duration(0.2).play();
         });
-      } else {
-        new import_animator.default(grabbing_card.sprite).to({
-          "position": baseCardPos(card_index),
-          "rotation": 0
-        }).duration(0.2).play();
-      }
-      cursor_spr = cursor_default_spr;
-      grabbing_card = null;
-    } else {
-      grabbing_card.sprite.rotation = Math.sin(import_shaku.default.gameTime.elapsed * 5) * 0.1;
-      grabbing_card.sprite.position.copy(import_shaku.default.input.mousePosition);
-    }
-  }
-  if (import_shaku.default.input.pressed("space")) {
-    addCard();
-  }
-  if (import_shaku.default.input.pressed("1") || import_shaku.default.input.pressed("2")) {
-    let hovering_tile = tileUnderPos(import_shaku.default.input.mousePosition);
-    let delta = import_shaku.default.input.pressed("1") ? -1 : 1;
-    if (hovering_card) {
-      hovering_card.count += delta;
-    } else if (grabbing_card) {
-      grabbing_card.count += delta;
-    } else if (hovering_tile) {
-      let asdf = board.getV(hovering_tile);
-      if (asdf) {
-        asdf.count += delta;
+      } else if (grabbing_card) {
+        hand = hand.filter((x) => x !== grabbing_card);
+        hand.forEach((card, k) => {
+          new import_animator.default(card.sprite).to({
+            "position": baseCardPos(k),
+            "rotation": 0
+          }).duration(0.2).play();
+        });
+      } else if (hovering_tile) {
+        board.setV(hovering_tile, null);
       }
     }
-  }
-  if (import_shaku.default.input.pressed("3")) {
-    let hovering_tile = tileUnderPos(import_shaku.default.input.mousePosition);
-    if (hovering_card) {
-      hand = hand.filter((x) => x !== hovering_card);
-      hand.forEach((card, k) => {
-        new import_animator.default(card.sprite).to({
-          "position": baseCardPos(k),
-          "rotation": 0
-        }).duration(0.2).play();
-      });
-    } else if (grabbing_card) {
-      hand = hand.filter((x) => x !== grabbing_card);
-      hand.forEach((card, k) => {
-        new import_animator.default(card.sprite).to({
-          "position": baseCardPos(k),
-          "rotation": 0
-        }).duration(0.2).play();
-      });
-    } else if (hovering_tile) {
-      board.setV(hovering_tile, null);
+  } else {
+    if (import_shaku.default.input.mouseDown()) {
+      let children = document.querySelector("#intro").childNodes;
+      children.forEach((x) => x.className = "animating");
+      document.querySelector("canvas").style.cursor = "none";
+      in_intro = false;
     }
   }
   import_shaku.default.gfx.useEffect(pixel_effect);

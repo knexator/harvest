@@ -29,6 +29,11 @@ const CONFIG = {
     board_x: 60,
     board_y: 60,
 };
+/*
+pixel_scaling: 1.4,
+card_w: 62 * 1.5,
+card_h: 92 * 1.5,
+*/
 let gui = new dat.GUI({});
 gui.remember(CONFIG);
 gui.add(CONFIG, "board_w", 2, 9, 1);
@@ -50,9 +55,9 @@ Shaku.gfx!.centerCanvas();
 // Shaku.gfx!.maximizeCanvasSize(false, false);
 
 // Loading Screen
-Shaku.startFrame();
-Shaku.gfx!.clear(Shaku.utils.Color.cornflowerblue);
-Shaku.endFrame();
+// Shaku.startFrame();
+// Shaku.gfx!.clear(Shaku.utils.Color.cornflowerblue);
+// Shaku.endFrame();
 
 // TYPE DEFINITIONS
 enum Veg {
@@ -87,6 +92,7 @@ const vegetable_textures: Record<Veg, TextureAsset> = {
 }
 
 // const card_texture = await Shaku.assets.loadTexture("imgs/card.png");
+// const card_carrot_texture = await Shaku.assets.loadTexture("imgs/card_carrot.png");
 
 const cursor_default = await Shaku.assets.loadTexture("imgs/cursor_02.png");
 const cursor_hover = await Shaku.assets.loadTexture("imgs/hand_open_02.png");
@@ -152,6 +158,8 @@ for (let k = 0; k < 10; k++) {
 
 const DIRS = [Vector2.right, Vector2.down, Vector2.left, Vector2.up];
 
+let hover_offset = 0;
+
 const pixel_effect = Shaku.gfx.createEffect(PixelEffect);
 
 const cursor_default_spr = new Sprite(cursor_default);
@@ -163,7 +171,6 @@ const cursor_grabbed_spr = new Sprite(cursor_grabbed);
 cursor_grabbed_spr.size.mulSelf(CONFIG.pixel_scaling);
 
 let cursor_spr = cursor_default_spr;
-document.querySelector("canvas")!.style.cursor = "none";
 
 let points_spr: SpritesGroup;
 refreshPoints();
@@ -175,7 +182,7 @@ function baseCardPos(index: number) {
 }
 
 function addCard() {
-    if (Math.random() < .99 && hand.every(x => x.type !== "crate")) {
+    if (Math.random() < .1 && hand.every(x => x.type !== "crate")) {
         addCrateCard();
     } else {
         addVegCard();
@@ -321,6 +328,9 @@ function connectedGroup(pos: Vector2): Vector2[] {
     return group;
 }
 
+// let intro_time_left = -1;
+let in_intro = true;
+
 // do a single main loop step and request the next step
 function step() {
     // start a new frame and clear screen
@@ -328,111 +338,130 @@ function step() {
     Shaku.gfx!.clear(background_color);
 
     cursor_spr.position.copy(Shaku.input.mousePosition);
-    if (!grabbing_card) {
-        let cur_hovering_card = hand.find(card => posOverCard(Shaku.input.mousePosition, card)) || null;
-        if (!hovering_card) {
-            if (cur_hovering_card) {
-                hovering_card = cur_hovering_card;
-                cursor_spr = cursor_hover_spr;
+    if (!in_intro) {
+        if (!grabbing_card) {
+            let cur_hovering_card = hand.find(card => posOverCard(Shaku.input.mousePosition, card)) || null;
+            if (!hovering_card) {
+                if (cur_hovering_card) {
+                    hovering_card = cur_hovering_card;
+                    hover_offset = Shaku.gameTime.elapsed;
+                    cursor_spr = cursor_hover_spr;
+                }
+            } else {
+                if (cur_hovering_card !== hovering_card) {
+                    // end hover
+                    new Animator(hovering_card.sprite).to({ rotation: 0 }).duration(.05).play();
+                    hovering_card = null;
+                    cursor_spr = cursor_default_spr;
+                } else {
+                    hovering_card.sprite.rotation = Math.sin((Shaku.gameTime.elapsed - hover_offset) * 5) * .1;
+                    // maybe grab a card?
+                    if (Shaku.input.mousePressed()) {
+                        grabbing_card = hovering_card;
+                        hovering_card = null;
+                        cursor_spr = cursor_grabbed_spr;
+                    }
+                }
             }
         } else {
-            if (cur_hovering_card !== hovering_card) {
-                // end hover
-                hovering_card.sprite.rotation = 0;
-                hovering_card = null;
+            let hovering_tile = tileUnderPos(Shaku.input.mousePosition);
+            if (hovering_tile && board.getV(hovering_tile)) hovering_tile = null;
+            if (Shaku.input.mouseReleased()) {
+                // stop grabbing
+                let card_index = hand.indexOf(grabbing_card);
+                if (hovering_tile) {
+                    // let new_veg_tile = {
+                    //     count: grabbing_card.count,
+                    //     vegetable: grabbing_card.vegetable,
+                    //     sprite: new Sprite(vegetable_textures[grabbing_card.vegetable]),
+                    // }
+                    grabbing_card.sprite.position.set(CONFIG.board_x + CONFIG.card_w * hovering_tile.x, CONFIG.board_y + CONFIG.card_h * hovering_tile.y);
+                    // new_veg_tile.sprite.size.mulSelf(CONFIG.pixel_scaling);
+                    board.setV(hovering_tile, grabbing_card);
+                    onPlaceCard(hovering_tile)
+                    // todo: card dissapear animation
+                    hand.splice(card_index, 1);
+                    hand.forEach((card, k) => {
+                        if (k < card_index) return;
+                        new Animator(card.sprite).to({
+                            "position": baseCardPos(k),
+                            "rotation": 0,
+                        }).duration(.2).play();
+                    })
+                } else {
+                    new Animator(grabbing_card.sprite).to({
+                        "position": baseCardPos(card_index),
+                        "rotation": 0,
+                    }).duration(.2).play();
+                }
                 cursor_spr = cursor_default_spr;
+                grabbing_card = null;
             } else {
-                hovering_card.sprite.rotation = Math.sin(Shaku.gameTime.elapsed * 5) * .1;
-                // maybe grab a card?
-                if (Shaku.input.mousePressed()) {
-                    grabbing_card = hovering_card;
-                    hovering_card = null;
-                    cursor_spr = cursor_grabbed_spr;
+                grabbing_card.sprite.rotation = Math.sin((Shaku.gameTime.elapsed - hover_offset) * 5) * .1;
+                grabbing_card.sprite.position.copy(Shaku.input.mousePosition);
+            }
+        }
+
+        // TODO: remove cheats
+        if (Shaku.input.pressed("space")) {
+            addCard();
+        }
+        if (Shaku.input.pressed("1") || Shaku.input.pressed("2")) {
+            let hovering_tile = tileUnderPos(Shaku.input.mousePosition);
+            let delta = Shaku.input.pressed("1") ? -1 : 1
+            if (hovering_card) {
+                // @ts-ignore
+                hovering_card.count += delta;
+            } else if (grabbing_card) {
+                // @ts-ignore
+                grabbing_card.count += delta;
+            } else if (hovering_tile) {
+                let asdf = board.getV(hovering_tile);
+                if (asdf) {
+                    // @ts-ignore
+                    asdf.count += delta;
                 }
             }
         }
-    } else {
-        let hovering_tile = tileUnderPos(Shaku.input.mousePosition);
-        if (hovering_tile && board.getV(hovering_tile)) hovering_tile = null;
-        if (Shaku.input.mouseReleased()) {
-            // stop grabbing
-            let card_index = hand.indexOf(grabbing_card);
-            if (hovering_tile) {
-                // let new_veg_tile = {
-                //     count: grabbing_card.count,
-                //     vegetable: grabbing_card.vegetable,
-                //     sprite: new Sprite(vegetable_textures[grabbing_card.vegetable]),
-                // }
-                grabbing_card.sprite.position.set(CONFIG.board_x + CONFIG.card_w * hovering_tile.x, CONFIG.board_y + CONFIG.card_h * hovering_tile.y);
-                // new_veg_tile.sprite.size.mulSelf(CONFIG.pixel_scaling);
-                board.setV(hovering_tile, grabbing_card);
-                onPlaceCard(hovering_tile)
-                // todo: card dissapear animation
-                hand.splice(card_index, 1);
+        if (Shaku.input.pressed("3")) {
+            let hovering_tile = tileUnderPos(Shaku.input.mousePosition);
+            if (hovering_card) {
+                hand = hand.filter(x => x !== hovering_card);
                 hand.forEach((card, k) => {
-                    if (k < card_index) return;
                     new Animator(card.sprite).to({
                         "position": baseCardPos(k),
                         "rotation": 0,
                     }).duration(.2).play();
                 })
-            } else {
-                new Animator(grabbing_card.sprite).to({
-                    "position": baseCardPos(card_index),
-                    "rotation": 0,
-                }).duration(.2).play();
-            }
-            cursor_spr = cursor_default_spr;
-            grabbing_card = null;
-        } else {
-            grabbing_card.sprite.rotation = Math.sin(Shaku.gameTime.elapsed * 5) * .1;
-            grabbing_card.sprite.position.copy(Shaku.input.mousePosition);
-        }
-    }
-
-
-    // TODO: remove cheats
-    if (Shaku.input.pressed("space")) {
-        addCard();
-    }
-    if (Shaku.input.pressed("1") || Shaku.input.pressed("2")) {
-        let hovering_tile = tileUnderPos(Shaku.input.mousePosition);
-        let delta = Shaku.input.pressed("1") ? -1 : 1
-        if (hovering_card) {
-            // @ts-ignore
-            hovering_card.count += delta;
-        } else if (grabbing_card) {
-            // @ts-ignore
-            grabbing_card.count += delta;
-        } else if (hovering_tile) {
-            let asdf = board.getV(hovering_tile);
-            if (asdf) {
-                // @ts-ignore
-                asdf.count += delta;
+            } else if (grabbing_card) {
+                hand = hand.filter(x => x !== grabbing_card);
+                hand.forEach((card, k) => {
+                    new Animator(card.sprite).to({
+                        "position": baseCardPos(k),
+                        "rotation": 0,
+                    }).duration(.2).play();
+                })
+            } else if (hovering_tile) {
+                board.setV(hovering_tile, null);
             }
         }
-    }
-    if (Shaku.input.pressed("3")) {
-        let hovering_tile = tileUnderPos(Shaku.input.mousePosition);
-        if (hovering_card) {
-            hand = hand.filter(x => x !== hovering_card);
-            hand.forEach((card, k) => {
-                new Animator(card.sprite).to({
-                    "position": baseCardPos(k),
-                    "rotation": 0,
-                }).duration(.2).play();
-            })
-        } else if (grabbing_card) {
-            hand = hand.filter(x => x !== grabbing_card);
-            hand.forEach((card, k) => {
-                new Animator(card.sprite).to({
-                    "position": baseCardPos(k),
-                    "rotation": 0,
-                }).duration(.2).play();
-            })
-        } else if (hovering_tile) {
-            board.setV(hovering_tile, null);
+    } else {
+        // if (intro_time_left < 0) {
+        if (Shaku.input.mouseDown()) {
+            // intro_time_left = 1;
+            let children = document.querySelector("#intro")!.childNodes;
+            // @ts-ignore
+            children.forEach(x => x.className = "animating");
+            document.querySelector("canvas")!.style.cursor = "none";
+
+            in_intro = false;
         }
+        /*} else {
+            intro_time_left = moveTowards(intro_time_left, 0, Shaku.gameTime.delta);
+            if (intro_time_left === 0) {
+                in_intro = false;
+            }
+        }*/
     }
 
     // RENDERING
@@ -491,6 +520,16 @@ function randint(n_options: number) {
 
 function mod(n: number, m: number) {
     return ((n % m) + m) % m;
+}
+
+function moveTowards(cur_val: number, target_val: number, max_delta: number): number {
+    if (target_val > cur_val) {
+        return Math.min(cur_val + max_delta, target_val);
+    } else if (target_val < cur_val) {
+        return Math.max(cur_val - max_delta, target_val);
+    } else {
+        return target_val;
+    }
 }
 
 async function loadAsciiTexture(ascii: string, colors: (string | Color)[]): Promise<TextureAsset> {
