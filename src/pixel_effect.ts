@@ -36,7 +36,7 @@ void main(void) {
 	uv_texspace = (uv_texspace - seam) / fwidth(uv_texspace) + seam;
 	uv_texspace = clamp(uv_texspace, seam - .5, seam + .5);
 	FragColor = texture(u_texture, uv_texspace / texsize)  * v_color;
-	FragColor.rgb *= FragColor.a;
+	// FragColor.rgb *= FragColor.a;
 }`;
 
 /*vec4 texture2DAA(sampler2D tex, vec2 uv) {

@@ -10564,7 +10564,7 @@ void main(void) {
 	uv_texspace = (uv_texspace - seam) / fwidth(uv_texspace) + seam;
 	uv_texspace = clamp(uv_texspace, seam - .5, seam + .5);
 	FragColor = texture(u_texture, uv_texspace / texsize)  * v_color;
-	FragColor.rgb *= FragColor.a;
+	// FragColor.rgb *= FragColor.a;
 }`;
 var PixelEffect = class extends import_effect.default {
   get vertexCode() {
@@ -10596,13 +10596,16 @@ var CONFIG = {
   max_count: 6,
   veg_hand_size: 6,
   n_types: 4,
+  card_scaling: 1.15,
   pixel_scaling: 4,
-  card_w: 90,
-  card_h: 120,
+  card_w: 62 + 10,
+  card_h: 92 + 10,
   card_x: 740,
   board_x: 60,
   board_y: 60
 };
+CONFIG.card_w *= CONFIG.card_scaling;
+CONFIG.card_h *= CONFIG.card_scaling;
 var gui = new GUI$1({});
 gui.remember(CONFIG);
 gui.add(CONFIG, "board_w", 2, 9, 1);
@@ -10616,16 +10619,24 @@ document.body.appendChild(import_shaku.default.gfx.canvas);
 import_shaku.default.gfx.setResolution(800, 600, true);
 import_shaku.default.gfx.centerCanvas();
 function randomVeg() {
-  return [0 /* CAULIFLOWER */, 1 /* CABBAGE */, 2 /* CARROT */, 3 /* KALE */, 4 /* POTATO */, 5 /* PUMPKIN */][randint(CONFIG.n_types)];
+  return [0 /* CARROT */, 1 /* KALE */, 2 /* PUMPKIN */, 3 /* CAULIFLOWER */, 4 /* CABBAGE */, 5 /* POTATO */][randint(CONFIG.n_types)];
 }
 var main_font = await import_shaku.default.assets.loadMsdfFontTexture("fonts/Arial.ttf", { jsonUrl: "fonts/Arial.json", textureUrl: "fonts/Arial.png" });
 var vegetable_textures = {
-  0: await import_shaku.default.assets.loadTexture("imgs/cauliflower_04.png"),
-  1: await import_shaku.default.assets.loadTexture("imgs/cabbage_04.png"),
-  2: await import_shaku.default.assets.loadTexture("imgs/carrot_04.png"),
-  3: await import_shaku.default.assets.loadTexture("imgs/kale_04.png"),
-  4: await import_shaku.default.assets.loadTexture("imgs/potato_04.png"),
-  5: await import_shaku.default.assets.loadTexture("imgs/pumpkin_04.png")
+  0: await import_shaku.default.assets.loadTexture("imgs/carrot_04.png"),
+  1: await import_shaku.default.assets.loadTexture("imgs/kale_04.png"),
+  2: await import_shaku.default.assets.loadTexture("imgs/pumpkin_04.png"),
+  3: await import_shaku.default.assets.loadTexture("imgs/cauliflower_04.png"),
+  4: await import_shaku.default.assets.loadTexture("imgs/cabbage_04.png"),
+  5: await import_shaku.default.assets.loadTexture("imgs/potato_04.png")
+};
+var vegetable_card_textures = {
+  0: await import_shaku.default.assets.loadTexture("imgs/card_carrot.png"),
+  1: await import_shaku.default.assets.loadTexture("imgs/card_kale.png"),
+  2: await import_shaku.default.assets.loadTexture("imgs/card_pumpkin.png"),
+  3: await import_shaku.default.assets.loadTexture("imgs/card_pumpkin.png"),
+  4: await import_shaku.default.assets.loadTexture("imgs/card_pumpkin.png"),
+  5: await import_shaku.default.assets.loadTexture("imgs/card_pumpkin.png")
 };
 var cursor_default = await import_shaku.default.assets.loadTexture("imgs/cursor_02.png");
 var cursor_hover = await import_shaku.default.assets.loadTexture("imgs/hand_open_02.png");
@@ -10699,7 +10710,7 @@ function addCrateCard() {
     count: 1 + mod(board.getV(crate_pos).count - 2, CONFIG.max_count)
   };
   let asdf = new import_sprite.default(import_shaku.default.gfx.whiteTexture);
-  asdf.size.set(CONFIG.card_w * 0.9 / CONFIG.pixel_scaling, CONFIG.card_h * 0.9 / CONFIG.pixel_scaling);
+  asdf.size.set((CONFIG.card_w - 10) / CONFIG.pixel_scaling, (CONFIG.card_h - 10) / CONFIG.pixel_scaling);
   new_crate_card.sprite.add(asdf);
   new_crate_card.sprite.add(new import_sprite.default(crate_texture));
   new_crate_card.sprite.scale.mulSelf(CONFIG.pixel_scaling);
@@ -10716,11 +10727,9 @@ function addVegCard() {
     count: randint(CONFIG.max_count) + 1,
     sprite: new import_sprites_group.default()
   };
-  let asdf = new import_sprite.default(import_shaku.default.gfx.whiteTexture);
-  asdf.size.set(CONFIG.card_w * 0.9 / CONFIG.pixel_scaling, CONFIG.card_h * 0.9 / CONFIG.pixel_scaling);
-  new_veg_card.sprite.add(asdf);
-  new_veg_card.sprite.add(new import_sprite.default(vegetable_textures[new_veg_card.vegetable]));
-  new_veg_card.sprite.scale.mulSelf(CONFIG.pixel_scaling);
+  let card_spr = new import_sprite.default(vegetable_card_textures[new_veg_card.vegetable]);
+  new_veg_card.sprite.add(card_spr);
+  new_veg_card.sprite.scale.mulSelf(CONFIG.card_scaling);
   new_veg_card.sprite.position.set(import_shaku.default.gfx.canvas.width / 2, import_shaku.default.gfx.canvas.height * 1.25);
   new import_animator.default(new_veg_card.sprite).to({
     "position": baseCardPos(hand.length)
@@ -10919,6 +10928,9 @@ function step() {
       children.forEach((x) => x.className = "animating");
       document.querySelector("canvas").style.cursor = "none";
       in_intro = false;
+      setTimeout(() => {
+        document.getElementById("intro").style.display = "none";
+      }, 1e3);
     }
   }
   import_shaku.default.gfx.useEffect(pixel_effect);

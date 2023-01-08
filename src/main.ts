@@ -22,18 +22,16 @@ const CONFIG = {
     veg_hand_size: 6,
     n_types: 4,
 
+    card_scaling: 1.15,
     pixel_scaling: 4,
-    card_w: 90,
-    card_h: 120,
+    card_w: 62 + 10,
+    card_h: 92 + 10,
     card_x: 740,
     board_x: 60,
     board_y: 60,
 };
-/*
-pixel_scaling: 1.4,
-card_w: 62 * 1.5,
-card_h: 92 * 1.5,
-*/
+CONFIG.card_w *= CONFIG.card_scaling;
+CONFIG.card_h *= CONFIG.card_scaling;
 let gui = new dat.GUI({});
 gui.remember(CONFIG);
 gui.add(CONFIG, "board_w", 2, 9, 1);
@@ -61,12 +59,12 @@ Shaku.gfx!.centerCanvas();
 
 // TYPE DEFINITIONS
 enum Veg {
-    CAULIFLOWER,
-    CABBAGE,
     CARROT,
     KALE,
-    POTATO,
     PUMPKIN,
+    CAULIFLOWER,
+    CABBAGE,
+    POTATO,
 }
 
 // type VegTile = false | { vegetable: Veg, count: number, sprite: Sprite };
@@ -76,19 +74,28 @@ type CrateCard = { type: "crate", count: number, sprite: SpritesGroup };
 type Card = VegCard | CrateCard;
 
 function randomVeg() {
-    return [Veg.CAULIFLOWER, Veg.CABBAGE, Veg.CARROT, Veg.KALE, Veg.POTATO, Veg.PUMPKIN][randint(CONFIG.n_types)];
+    return [Veg.CARROT, Veg.KALE, Veg.PUMPKIN, Veg.CAULIFLOWER, Veg.CABBAGE, Veg.POTATO][randint(CONFIG.n_types)];
 }
 
 // LOAD ASSETS
 const main_font = await Shaku.assets.loadMsdfFontTexture('fonts/Arial.ttf', { jsonUrl: 'fonts/Arial.json', textureUrl: 'fonts/Arial.png' });
 
 const vegetable_textures: Record<Veg, TextureAsset> = {
-    0: await Shaku.assets.loadTexture("imgs/cauliflower_04.png"),
-    1: await Shaku.assets.loadTexture("imgs/cabbage_04.png"),
-    2: await Shaku.assets.loadTexture("imgs/carrot_04.png"),
-    3: await Shaku.assets.loadTexture("imgs/kale_04.png"),
-    4: await Shaku.assets.loadTexture("imgs/potato_04.png"),
-    5: await Shaku.assets.loadTexture("imgs/pumpkin_04.png"),
+    0: await Shaku.assets.loadTexture("imgs/carrot_04.png"),
+    1: await Shaku.assets.loadTexture("imgs/kale_04.png"),
+    2: await Shaku.assets.loadTexture("imgs/pumpkin_04.png"),
+    3: await Shaku.assets.loadTexture("imgs/cauliflower_04.png"),
+    4: await Shaku.assets.loadTexture("imgs/cabbage_04.png"),
+    5: await Shaku.assets.loadTexture("imgs/potato_04.png"),
+}
+
+const vegetable_card_textures: Record<Veg, TextureAsset> = {
+    0: await Shaku.assets.loadTexture("imgs/card_carrot.png"),
+    1: await Shaku.assets.loadTexture("imgs/card_kale.png"),
+    2: await Shaku.assets.loadTexture("imgs/card_pumpkin.png"),
+    3: await Shaku.assets.loadTexture("imgs/card_pumpkin.png"),
+    4: await Shaku.assets.loadTexture("imgs/card_pumpkin.png"),
+    5: await Shaku.assets.loadTexture("imgs/card_pumpkin.png"),
 }
 
 // const card_texture = await Shaku.assets.loadTexture("imgs/card.png");
@@ -196,7 +203,7 @@ function addCrateCard() {
         count: 1 + mod((board.getV(crate_pos) as CrateCard).count - 2, CONFIG.max_count),
     }
     let asdf = new Sprite(Shaku.gfx.whiteTexture);
-    asdf.size.set(CONFIG.card_w * .9 / CONFIG.pixel_scaling, CONFIG.card_h * .9 / CONFIG.pixel_scaling);
+    asdf.size.set((CONFIG.card_w - 10) / CONFIG.pixel_scaling, (CONFIG.card_h - 10) / CONFIG.pixel_scaling);
     new_crate_card.sprite.add(asdf);
     new_crate_card.sprite.add(new Sprite(crate_texture));
     new_crate_card.sprite.scale.mulSelf(CONFIG.pixel_scaling);
@@ -216,13 +223,14 @@ function addVegCard() {
         count: randint(CONFIG.max_count) + 1,
         sprite: new SpritesGroup(),
     }
-    let asdf = new Sprite(Shaku.gfx.whiteTexture);
-    asdf.size.set(CONFIG.card_w * .9 / CONFIG.pixel_scaling, CONFIG.card_h * .9 / CONFIG.pixel_scaling);
-    new_veg_card.sprite.add(asdf);
-    new_veg_card.sprite.add(new Sprite(vegetable_textures[new_veg_card.vegetable]));
-    new_veg_card.sprite.scale.mulSelf(CONFIG.pixel_scaling);
-
-    // new_veg_card.sprite.position.set(Shaku.gfx.canvas.width / 2, Shaku.gfx.canvas.height * .5);
+    // let asdf = new Sprite(Shaku.gfx.whiteTexture);
+    // asdf.size.set(CONFIG.card_w * .9 / CONFIG.pixel_scaling, CONFIG.card_h * .9 / CONFIG.pixel_scaling);
+    // new_veg_card.sprite.add(asdf);
+    // new_veg_card.sprite.add(new Sprite(vegetable_textures[new_veg_card.vegetable]));
+    let card_spr = new Sprite(vegetable_card_textures[new_veg_card.vegetable]);
+    // card_spr.setSourceFromSpritesheet(new Vector2(0, 0), new Vector2(1, 1), 1, true);
+    new_veg_card.sprite.add(card_spr);
+    new_veg_card.sprite.scale.mulSelf(CONFIG.card_scaling);
 
     new_veg_card.sprite.position.set(Shaku.gfx.canvas.width / 2, Shaku.gfx.canvas.height * 1.25);
     new Animator(new_veg_card.sprite).to({
@@ -455,6 +463,9 @@ function step() {
             document.querySelector("canvas")!.style.cursor = "none";
 
             in_intro = false;
+            setTimeout(() => {
+                document.getElementById("intro")!.style.display = "none";
+            }, 1000);
         }
         /*} else {
             intro_time_left = moveTowards(intro_time_left, 0, Shaku.gameTime.delta);
