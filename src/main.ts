@@ -294,7 +294,7 @@ function updateCountSprite(card: Card) {
 
 function addCard() {
     // todo: remove hack
-    if (Math.random() < .991 && hand.every(x => x.type !== "crate")) {
+    if (Math.random() < .1 && hand.every(x => x.type !== "crate")) {
         addCrateCard();
     } else {
         addVegCard();
@@ -393,8 +393,6 @@ function createScoreSprite(card: Exclude<VegCard, false>, index: number, crate_p
 function activateCard(pos: Vector2, crate_pos: Vector2 | null, extra_delay: number) {
     let connected_group = connectedGroup(pos);
     if (connected_group.length > 1 || (crate_pos !== null && connected_group.length >= 1)) {
-        // todo: anim stuff to points
-        // points += connected_group.length;
         connected_group.forEach((p, index) => {
             let tile = board.getV(p) as Exclude<VegCard, false>;
             createScoreSprite(tile, index, crate_pos, extra_delay, index === 0);
@@ -431,7 +429,7 @@ function onPlaceCard(pos: Vector2) {
         let seen: Vector2[] = [];
         for (let k = 0; k < 4; k++) {
             let cur_pos = pos.add(DIRS[k]);
-            if (seen.some(x => x === cur_pos)) continue;
+            if (seen.some(x => x.equals(cur_pos))) continue;
             let tile = board.getV(cur_pos, null);
             if (tile && tile.count === placed.count) {
                 let new_seen = activateCard(cur_pos, placed.sprite.position, delay);
@@ -586,6 +584,23 @@ function step() {
                     board.setV(hovering_tile, null);
                 } else if (grabbing_card.type === "crate") {
                     // todo: juice for crates
+                    let seen: Vector2[] = [];
+                    for (let k = 0; k < 4; k++) {
+                        let cur_pos = hovering_tile.add(DIRS[k]);
+                        if (seen.some(x => x.equals(cur_pos))) continue;
+                        let tile = board.getV(cur_pos, null);
+                        if (tile && tile.count === grabbing_card.count) {
+                            let new_seen = connectedGroup(cur_pos);
+                            if (new_seen.length >= 1) {
+                                new_seen.forEach((p, index) => {
+                                    let tile = board.getV(p) as Exclude<VegCard, false>;
+                                    tile.sprite.rotation += Math.sin(index * .7 + Shaku.gameTime.elapsed * 10) * Shaku.gameTime.delta * .5;
+                                    tile.sprite.rotation *= .99;
+                                });
+                                seen = seen.concat(new_seen);
+                            }
+                        }
+                    }
                 }
             }
             last_hovering_tile = hovering_tile;
@@ -602,7 +617,6 @@ function step() {
                     // new_veg_tile.sprite.size.mulSelf(CONFIG.pixel_scaling);
                     board.setV(hovering_tile, grabbing_card);
                     onPlaceCard(hovering_tile);
-                    // todo: card dissapear animation
                     hand.splice(card_index, 1);
                     hand.forEach((card, k) => {
                         if (k < card_index) return;

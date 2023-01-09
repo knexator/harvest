@@ -8282,7 +8282,7 @@ function updateCountSprite(card) {
   }
 }
 function addCard() {
-  if (Math.random() < 0.991 && hand.every((x) => x.type !== "crate")) {
+  if (Math.random() < 0.1 && hand.every((x) => x.type !== "crate")) {
     addCrateCard();
   } else {
     addVegCard();
@@ -8401,7 +8401,7 @@ function onPlaceCard(pos) {
     let seen = [];
     for (let k = 0; k < 4; k++) {
       let cur_pos = pos.add(DIRS[k]);
-      if (seen.some((x) => x === cur_pos))
+      if (seen.some((x) => x.equals(cur_pos)))
         continue;
       let tile = board.getV(cur_pos, null);
       if (tile && tile.count === placed.count) {
@@ -8531,6 +8531,24 @@ function step() {
           }
           board.setV(hovering_tile, null);
         } else if (grabbing_card.type === "crate") {
+          let seen = [];
+          for (let k = 0; k < 4; k++) {
+            let cur_pos = hovering_tile.add(DIRS[k]);
+            if (seen.some((x) => x.equals(cur_pos)))
+              continue;
+            let tile = board.getV(cur_pos, null);
+            if (tile && tile.count === grabbing_card.count) {
+              let new_seen = connectedGroup(cur_pos);
+              if (new_seen.length >= 1) {
+                new_seen.forEach((p, index) => {
+                  let tile2 = board.getV(p);
+                  tile2.sprite.rotation += Math.sin(index * 0.7 + import_shaku.default.gameTime.elapsed * 10) * import_shaku.default.gameTime.delta * 0.5;
+                  tile2.sprite.rotation *= 0.99;
+                });
+                seen = seen.concat(new_seen);
+              }
+            }
+          }
         }
       }
       last_hovering_tile = hovering_tile;
