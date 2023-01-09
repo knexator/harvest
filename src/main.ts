@@ -26,15 +26,18 @@ const CONFIG = {
 
     card_scaling: 1.15,
     pixel_scaling: 4,
-    card_w: 62, // + 10,
-    card_h: 92, // + 10,
-    card_x: 540,
+    card_w: 62 + 12,
+    card_h: 92 + 12,
+    card_x: 640,
     board_x: 80,
-    board_y: 102 + 10,
-    deck_x: 650,
-    deck_y: 122,
-    score_x: 650,
-    score_y: 600,
+    board_y: 102 + 40,
+    deck_x: 720,
+    deck_y: 142,
+    score_x: 625,
+    score_y: 65,
+    score_digits: 4,
+    eater_x: 720,
+    eater_y: 142 + 92 + 12 + 50,
 };
 CONFIG.card_w *= CONFIG.card_scaling;
 CONFIG.card_h *= CONFIG.card_scaling;
@@ -54,7 +57,7 @@ await Shaku.init([Shaku.assets, Shaku.sfx, Shaku.gfx, Shaku.input]);
 
 // add shaku's canvas to document and set resolution to 800x600
 document.body.appendChild(Shaku!.gfx!.canvas);
-Shaku.gfx!.setResolution(700, 660, true);
+Shaku.gfx!.setResolution(772, 732, true);
 Shaku.gfx!.centerCanvas();
 // Shaku.gfx!.maximizeCanvasSize(false, false);
 
@@ -252,9 +255,19 @@ cursor_grabbed_spr.size.mulSelf(CONFIG.pixel_scaling);
 
 let cursor_spr = cursor_default_spr;
 
-let points_pos = new Vector2(Shaku.gfx.canvas.width * .75, Shaku.gfx.canvas.height * .9);
-let points_spr: SpritesGroup;
-refreshPoints();
+let eater_pos = new Vector2(CONFIG.eater_x, CONFIG.eater_y);
+
+let points_pos = new Vector2(CONFIG.score_x, CONFIG.score_y);
+let points_spr = new SpritesGroup();
+points_spr.add(new Sprite(score_texture));
+for (let k = 0; k < CONFIG.score_digits; k++) {
+    let cur_spr = new Sprite(numbers_texture);
+    cur_spr.setSourceFromSpritesheet(Vector2.zero, new Vector2(10, 1), 1, true);
+    cur_spr.position.x += 50 + k * 14;
+    points_spr.add(cur_spr);
+}
+points_spr.position.copy(points_pos);
+points_spr.scale.set(1.4, 1.4);
 
 let background_sprite = new Sprite(background_texture);
 background_sprite.origin.set(0, 0);
@@ -349,7 +362,7 @@ function createScoreSprite(card: Exclude<VegCard, false>, index: number, crate_p
 
     let original_size = veg_sprite.size.clone();
     let p0 = veg_sprite.position.clone() as Vector2;
-    let pE = (crate_pos === null) ? points_pos : crate_pos;
+    let pE = (crate_pos === null) ? eater_pos : crate_pos;
     let p1 = Vector2.lerp(p0, pE, .5);
     p1.addSelf(Vector2.random.mulSelf(100)).addSelf(-200, -200);
     new Animator(veg_sprite).onUpdate((t: number) => {
@@ -357,6 +370,7 @@ function createScoreSprite(card: Exclude<VegCard, false>, index: number, crate_p
         veg_sprite.size = original_size.mul((t + .5) * (t - 1.35) * -2.5);
     }).duration(.40).delay((extra_delay + .1 + index * .1) / .40).play().then(() => {
         particles = particles.filter(x => x != veg_sprite);
+        refreshPoints(1);
     });
 
     // note_sound.play();
@@ -367,8 +381,7 @@ function activateCard(pos: Vector2, crate_pos: Vector2 | null, extra_delay: numb
     let connected_group = connectedGroup(pos);
     if (connected_group.length > 1) {
         // todo: anim stuff to points
-        points += connected_group.length;
-        refreshPoints();
+        // points += connected_group.length;
         connected_group.forEach((p, index) => {
             let tile = board.getV(p) as Exclude<VegCard, false>;
             createScoreSprite(tile, index, crate_pos, extra_delay);
@@ -411,18 +424,26 @@ function onPlaceCard(pos: Vector2) {
                         .to({ "rotation": rotation * (-.9 + Math.random() * .2) })
                         .delay((delay) / .05).duration(.05).play();
                     rotation *= -1;
-                    delay += .5;
+                    delay += new_seen.length * .1 + .2;
                     seen = seen.concat(new_seen);
                 }
             }
         }
+        new Animator(placed.sprite).to({ "position": eater_pos }).smoothDamp(true)
+            .duration(.35).delay((delay + .3) / .35).play().then(() => {
+                board.setV(pos, null);
+            });
     }
 }
 
-function refreshPoints() {
-    // todo: draw points
-    // points_spr = Shaku.gfx.buildText(main_font, `Points: ${points}`, 20, Color.black);
-    // points_spr.position.copy(points_pos);
+function refreshPoints(amount: number) {
+    points = mod(points + amount, Math.pow(10, CONFIG.score_digits));
+    let digits = points.toString().split('').map(x => Number(x));
+    for (let k = 0; k < CONFIG.score_digits; k++) {
+        let cur = points_spr._sprites[k + 1] as Sprite;
+        cur.setSourceFromSpritesheet(new Vector2(digits[CONFIG.score_digits - 1 - k], 0), new Vector2(10, 1), 1, true);
+    }
+    sizeBumpAnim(points_spr);
 }
 
 function connectedGroup(pos: Vector2): Vector2[] {
@@ -576,7 +597,7 @@ function step() {
                         for (let k = 1; k < CONFIG.veg_hand_size; k++) {
                             setTimeout(() => {
                                 addCard();
-                            }, k * 250);
+                            }, (k - 1) * 250);
                         }
                     }
                 } else {
@@ -701,7 +722,7 @@ function step() {
     });
 
     // Shaku.gfx.useEffect(Shaku.gfx.builtinEffects.MsdfFont);
-    // Shaku.gfx.drawGroup(points_spr, false);
+    Shaku.gfx.drawGroup(points_spr, false);
     // Shaku.gfx.useEffect(pixel_effect);
 
     cursor_spr.position.copy(Shaku.input.mousePosition);

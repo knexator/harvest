@@ -4,8 +4,8 @@ var __getOwnPropDesc = Object.getOwnPropertyDescriptor;
 var __getOwnPropNames = Object.getOwnPropertyNames;
 var __getProtoOf = Object.getPrototypeOf;
 var __hasOwnProp = Object.prototype.hasOwnProperty;
-var __commonJS = (cb, mod) => function __require() {
-  return mod || (0, cb[__getOwnPropNames(cb)[0]])((mod = { exports: {} }).exports, mod), mod.exports;
+var __commonJS = (cb, mod2) => function __require() {
+  return mod2 || (0, cb[__getOwnPropNames(cb)[0]])((mod2 = { exports: {} }).exports, mod2), mod2.exports;
 };
 var __copyProps = (to, from, except, desc) => {
   if (from && typeof from === "object" || typeof from === "function") {
@@ -15,9 +15,9 @@ var __copyProps = (to, from, except, desc) => {
   }
   return to;
 };
-var __toESM = (mod, isNodeMode, target) => (target = mod != null ? __create(__getProtoOf(mod)) : {}, __copyProps(
-  isNodeMode || !mod || !mod.__esModule ? __defProp(target, "default", { value: mod, enumerable: true }) : target,
-  mod
+var __toESM = (mod2, isNodeMode, target) => (target = mod2 != null ? __create(__getProtoOf(mod2)) : {}, __copyProps(
+  isNodeMode || !mod2 || !mod2.__esModule ? __defProp(target, "default", { value: mod2, enumerable: true }) : target,
+  mod2
 ));
 
 // ../Shaku/lib/manager.js
@@ -10597,15 +10597,18 @@ var CONFIG = {
   n_types: 3,
   card_scaling: 1.15,
   pixel_scaling: 4,
-  card_w: 62,
-  card_h: 92,
-  card_x: 540,
+  card_w: 62 + 12,
+  card_h: 92 + 12,
+  card_x: 640,
   board_x: 80,
-  board_y: 102 + 10,
-  deck_x: 650,
-  deck_y: 122,
-  score_x: 650,
-  score_y: 600
+  board_y: 102 + 40,
+  deck_x: 720,
+  deck_y: 142,
+  score_x: 625,
+  score_y: 65,
+  score_digits: 4,
+  eater_x: 720,
+  eater_y: 142 + 92 + 12 + 50
 };
 CONFIG.card_w *= CONFIG.card_scaling;
 CONFIG.card_h *= CONFIG.card_scaling;
@@ -10619,7 +10622,7 @@ gui.add(CONFIG, "n_types", 2, 5, 1);
 import_shaku.default.input.setTargetElement(() => import_shaku.default.gfx.canvas);
 await import_shaku.default.init([import_shaku.default.assets, import_shaku.default.sfx, import_shaku.default.gfx, import_shaku.default.input]);
 document.body.appendChild(import_shaku.default.gfx.canvas);
-import_shaku.default.gfx.setResolution(700, 660, true);
+import_shaku.default.gfx.setResolution(772, 732, true);
 import_shaku.default.gfx.centerCanvas();
 function randomVeg() {
   return [0 /* CARROT */, 1 /* KALE */, 2 /* PUMPKIN */, 3 /* CAULIFLOWER */, 4 /* CABBAGE */, 5 /* POTATO */][randint(CONFIG.n_types)];
@@ -10713,8 +10716,18 @@ cursor_hover_spr.size.mulSelf(CONFIG.pixel_scaling);
 var cursor_grabbed_spr = new import_sprite.default(cursor_grabbed);
 cursor_grabbed_spr.size.mulSelf(CONFIG.pixel_scaling);
 var cursor_spr = cursor_default_spr;
-var points_pos = new import_vector2.default(import_shaku.default.gfx.canvas.width * 0.75, import_shaku.default.gfx.canvas.height * 0.9);
-refreshPoints();
+var eater_pos = new import_vector2.default(CONFIG.eater_x, CONFIG.eater_y);
+var points_pos = new import_vector2.default(CONFIG.score_x, CONFIG.score_y);
+var points_spr = new import_sprites_group.default();
+points_spr.add(new import_sprite.default(score_texture));
+for (let k = 0; k < CONFIG.score_digits; k++) {
+  let cur_spr = new import_sprite.default(numbers_texture);
+  cur_spr.setSourceFromSpritesheet(import_vector2.default.zero, new import_vector2.default(10, 1), 1, true);
+  cur_spr.position.x += 50 + k * 14;
+  points_spr.add(cur_spr);
+}
+points_spr.position.copy(points_pos);
+points_spr.scale.set(1.4, 1.4);
 var background_sprite = new import_sprite.default(background_texture);
 background_sprite.origin.set(0, 0);
 function baseCardPos(index) {
@@ -10794,7 +10807,7 @@ function createScoreSprite(card, index, crate_pos, extra_delay) {
   particles.push(veg_sprite);
   let original_size = veg_sprite.size.clone();
   let p0 = veg_sprite.position.clone();
-  let pE = crate_pos === null ? points_pos : crate_pos;
+  let pE = crate_pos === null ? eater_pos : crate_pos;
   let p1 = import_vector2.default.lerp(p0, pE, 0.5);
   p1.addSelf(import_vector2.default.random.mulSelf(100)).addSelf(-200, -200);
   new import_animator.default(veg_sprite).onUpdate((t) => {
@@ -10802,14 +10815,13 @@ function createScoreSprite(card, index, crate_pos, extra_delay) {
     veg_sprite.size = original_size.mul((t + 0.5) * (t - 1.35) * -2.5);
   }).duration(0.4).delay((extra_delay + 0.1 + index * 0.1) / 0.4).play().then(() => {
     particles = particles.filter((x) => x != veg_sprite);
+    refreshPoints(1);
   });
   sizeBumpAnim(card.sprite, extra_delay + 0.1 + index * 0.1);
 }
 function activateCard(pos, crate_pos, extra_delay) {
   let connected_group = connectedGroup(pos);
   if (connected_group.length > 1) {
-    points += connected_group.length;
-    refreshPoints();
     connected_group.forEach((p, index) => {
       let tile = board.getV(p);
       createScoreSprite(tile, index, crate_pos, extra_delay);
@@ -10849,14 +10861,24 @@ function onPlaceCard(pos) {
         if (new_seen.length > 1) {
           new import_animator.default(placed.sprite).to({ "rotation": rotation * (-0.9 + Math.random() * 0.2) }).delay(delay / 0.05).duration(0.05).play();
           rotation *= -1;
-          delay += 0.5;
+          delay += new_seen.length * 0.1 + 0.2;
           seen = seen.concat(new_seen);
         }
       }
     }
+    new import_animator.default(placed.sprite).to({ "position": eater_pos }).smoothDamp(true).duration(0.35).delay((delay + 0.3) / 0.35).play().then(() => {
+      board.setV(pos, null);
+    });
   }
 }
-function refreshPoints() {
+function refreshPoints(amount) {
+  points = mod(points + amount, Math.pow(10, CONFIG.score_digits));
+  let digits = points.toString().split("").map((x) => Number(x));
+  for (let k = 0; k < CONFIG.score_digits; k++) {
+    let cur = points_spr._sprites[k + 1];
+    cur.setSourceFromSpritesheet(new import_vector2.default(digits[CONFIG.score_digits - 1 - k], 0), new import_vector2.default(10, 1), 1, true);
+  }
+  sizeBumpAnim(points_spr);
 }
 function connectedGroup(pos) {
   let tile = board.getV(pos, false);
@@ -10981,7 +11003,7 @@ function step() {
             for (let k = 1; k < CONFIG.veg_hand_size; k++) {
               setTimeout(() => {
                 addCard();
-              }, k * 250);
+              }, (k - 1) * 250);
             }
           }
         } else {
@@ -11070,6 +11092,7 @@ function step() {
   particles.forEach((x) => {
     import_shaku.default.gfx.drawSprite(x);
   });
+  import_shaku.default.gfx.drawGroup(points_spr, false);
   cursor_spr.position.copy(import_shaku.default.input.mousePosition);
   import_shaku.default.gfx.drawSprite(cursor_spr);
   import_shaku.default.endFrame();
@@ -11078,6 +11101,9 @@ function step() {
 step();
 function randint(n_options) {
   return Math.floor(Math.random() * n_options);
+}
+function mod(n, m) {
+  return (n % m + m) % m;
 }
 function bezier3(t, p0, p1, p2) {
   let result2 = p2.mul(t * t);
