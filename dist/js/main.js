@@ -10729,8 +10729,10 @@ function posOverCard(pos, card) {
 }
 function tileUnderPos(pos) {
   pos = pos.add(card_grab_offset);
-  let i = Math.floor((pos.x - CONFIG.board_x) / CONFIG.card_w + 0.5);
-  let j = Math.floor((pos.y - CONFIG.board_y) / CONFIG.card_h + 0.5);
+  let i = (pos.x - CONFIG.board_x) / CONFIG.card_w + 0.5;
+  let j = (pos.y - CONFIG.board_y) / CONFIG.card_h + 0.8;
+  i = Math.floor(i);
+  j = Math.floor(j);
   if (i < 0 || i >= CONFIG.board_w || j < 0 || j >= CONFIG.board_h)
     return null;
   return new import_vector2.default(i, j);
@@ -10750,9 +10752,10 @@ function createScoreSprite(card, index, crate_pos, extra_delay) {
   new import_animator.default(veg_sprite).onUpdate((t) => {
     veg_sprite.position.copy(bezier3((1 - (1 - t) * (1 - t)) / 2 + t / 2, p0, p1, pE));
     veg_sprite.size = original_size.mul((t + 0.5) * (t - 1.35) * -2.5);
-  }).duration(0.4).delay(extra_delay / 0.4 + 0.1 + index * 0.2).play().then(() => {
+  }).duration(0.4).delay((extra_delay + 0.1 + index * 0.1) / 0.4).play().then(() => {
     particles = particles.filter((x) => x != veg_sprite);
   });
+  sizeBumpAnim(card.sprite, extra_delay + 0.1 + index * 0.2);
 }
 function activateCard(pos, crate_pos, extra_delay) {
   let connected_group = connectedGroup(pos);
@@ -10763,11 +10766,11 @@ function activateCard(pos, crate_pos, extra_delay) {
       let tile = board.getV(p);
       createScoreSprite(tile, index, crate_pos, extra_delay);
       if (tile.count > 1) {
-        new import_animator.default(tile.sprite).to({ "rotation": tile.sprite.rotation * (-0.9 + Math.random() * 0.2) }).delay(extra_delay / 0.05 + 0.1 + index * 0.2).duration(0.05).play().then(() => {
+        new import_animator.default(tile.sprite).to({ "rotation": tile.sprite.rotation * (-0.9 + Math.random() * 0.2) }).delay((extra_delay + 0.1 + index * 0.2) / 0.05).duration(0.05).play().then(() => {
           tile.count -= 1;
         });
       } else {
-        new import_animator.default(tile.sprite).to({ "position": tile.sprite.position.add(0, import_shaku.default.gfx.canvas.height) }).smoothDamp(true).duration(0.35).delay(extra_delay / 0.35 + 0.3 + index * 0.2).play().then(() => {
+        new import_animator.default(tile.sprite).to({ "position": tile.sprite.position.add(0, import_shaku.default.gfx.canvas.height) }).smoothDamp(true).duration(0.35).delay((extra_delay + 0.3 + index * 0.2) / 0.35).play().then(() => {
           board.setV(p, null);
         });
       }
@@ -10822,6 +10825,10 @@ function connectedGroup(pos) {
   }
   return group;
 }
+function sizeBumpAnim(spr, delay = 0) {
+  let original_scale = spr.scale.clone();
+  new import_animator.default(spr).from({ "scale": original_scale.mul(1.1) }).to({ "scale": original_scale }).duration(0.07).delay(delay / 0.07).play();
+}
 var in_intro = true;
 var last_hovering_tile = null;
 function step() {
@@ -10834,6 +10841,7 @@ function step() {
       if (!hovering_card) {
         if (cur_hovering_card) {
           hovering_card = cur_hovering_card;
+          sizeBumpAnim(hovering_card.sprite);
           hover_offset = import_shaku.default.gameTime.elapsed;
           cursor_spr = cursor_hover_spr;
         }
@@ -10895,7 +10903,14 @@ function step() {
         grabbing_card = null;
       } else {
         grabbing_card.sprite.rotation = Math.sin((import_shaku.default.gameTime.elapsed - hover_offset) * 5) * 0.1;
-        grabbing_card.sprite.position.copy(import_shaku.default.input.mousePosition.add(card_grab_offset));
+        if (hovering_tile) {
+          let board_pos = new import_vector2.default(CONFIG.board_x + CONFIG.card_w * hovering_tile.x, CONFIG.board_y + CONFIG.card_h * hovering_tile.y);
+          grabbing_card.sprite.position.copy(
+            import_vector2.default.lerp(board_pos, import_shaku.default.input.mousePosition.add(card_grab_offset), 0.1)
+          );
+        } else {
+          grabbing_card.sprite.position.copy(import_shaku.default.input.mousePosition.add(card_grab_offset));
+        }
       }
     }
     if (import_shaku.default.input.pressed("space")) {

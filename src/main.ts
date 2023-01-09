@@ -251,8 +251,11 @@ function posOverCard(pos: Vector2, card: Card) {
 
 function tileUnderPos(pos: Vector2): Vector2 | null {
     pos = pos.add(card_grab_offset);
-    let i = Math.floor((pos.x - CONFIG.board_x) / CONFIG.card_w + .5);
-    let j = Math.floor((pos.y - CONFIG.board_y) / CONFIG.card_h + .5);
+    let i = (pos.x - CONFIG.board_x) / CONFIG.card_w + .5;
+    let j = (pos.y - CONFIG.board_y) / CONFIG.card_h + .8;
+    // if (Math.abs((i % 1) - .5) > .4 || Math.abs((j % 1) - .5) > .4) return null;
+    i = Math.floor(i);
+    j = Math.floor(j);
     if (i < 0 || i >= CONFIG.board_w || j < 0 || j >= CONFIG.board_h) return null;
     return new Vector2(i, j);
 }
@@ -273,9 +276,11 @@ function createScoreSprite(card: Exclude<VegCard, false>, index: number, crate_p
     new Animator(veg_sprite).onUpdate((t: number) => {
         veg_sprite.position.copy(bezier3((1 - (1 - t) * (1 - t)) / 2 + t / 2, p0, p1, pE));
         veg_sprite.size = original_size.mul((t + .5) * (t - 1.35) * -2.5);
-    }).duration(.40).delay(extra_delay / .40 + .1 + index * .2).play().then(() => {
+    }).duration(.40).delay((extra_delay + .1 + index * .1) / .40).play().then(() => {
         particles = particles.filter(x => x != veg_sprite);
     });
+
+    sizeBumpAnim(card.sprite, extra_delay + .1 + index * .2);
 }
 
 function activateCard(pos: Vector2, crate_pos: Vector2 | null, extra_delay: number) {
@@ -289,12 +294,12 @@ function activateCard(pos: Vector2, crate_pos: Vector2 | null, extra_delay: numb
             createScoreSprite(tile, index, crate_pos, extra_delay);
             if (tile.count > 1) {
                 new Animator(tile.sprite).to({ "rotation": tile.sprite.rotation * (-.9 + Math.random() * .2) })
-                    .delay(extra_delay / .05 + .1 + index * .2).duration(.05).play().then(() => {
+                    .delay((extra_delay + .1 + index * .2) / .05).duration(.05).play().then(() => {
                         tile.count -= 1;
                     });
             } else {
                 new Animator(tile.sprite).to({ "position": tile.sprite.position.add(0, Shaku.gfx.canvas.height) }).smoothDamp(true)
-                    .duration(.35).delay(extra_delay / .35 + .3 + index * .2).play().then(() => {
+                    .duration(.35).delay((extra_delay + .3 + index * .2) / .35).play().then(() => {
                         board.setV(p, null);
                     });
             }
@@ -352,6 +357,12 @@ function connectedGroup(pos: Vector2): Vector2[] {
     return group;
 }
 
+function sizeBumpAnim(spr: SpritesGroup, delay: number = 0) {
+    let original_scale = spr.scale.clone();
+    new Animator(spr).from({ "scale": original_scale.mul(1.1) }).to({ "scale": original_scale })
+        .duration(.07).delay(delay / .07).play();
+}
+
 // let intro_time_left = -1;
 let in_intro = true;
 
@@ -370,6 +381,7 @@ function step() {
             if (!hovering_card) {
                 if (cur_hovering_card) {
                     hovering_card = cur_hovering_card;
+                    sizeBumpAnim(hovering_card.sprite);
                     hover_offset = Shaku.gameTime.elapsed;
                     cursor_spr = cursor_hover_spr;
                 }
@@ -405,7 +417,7 @@ function step() {
                     }
                     board.setV(hovering_tile, null);
                 } else if (grabbing_card.type === "crate") {
-
+                    // todo: juice for crates
                 }
             }
             if (Shaku.input.mouseReleased()) {
@@ -440,7 +452,15 @@ function step() {
                 grabbing_card = null;
             } else {
                 grabbing_card.sprite.rotation = Math.sin((Shaku.gameTime.elapsed - hover_offset) * 5) * .1;
-                grabbing_card.sprite.position.copy(Shaku.input.mousePosition.add(card_grab_offset));
+                // grabbing_card.sprite.position.copy(Shaku.input.mousePosition.add(card_grab_offset));
+                if (hovering_tile) {
+                    let board_pos = new Vector2(CONFIG.board_x + CONFIG.card_w * hovering_tile.x, CONFIG.board_y + CONFIG.card_h * hovering_tile.y);
+                    grabbing_card.sprite.position.copy(
+                        Vector2.lerp(board_pos, Shaku.input.mousePosition.add(card_grab_offset), .1)
+                    );
+                } else {
+                    grabbing_card.sprite.position.copy(Shaku.input.mousePosition.add(card_grab_offset));
+                }
             }
         }
 
