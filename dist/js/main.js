@@ -8463,15 +8463,13 @@ function makeWaterVersion(card) {
   updateCountSprite(card);
   card.sprite._sprites[0].texture = vegetable_water_card_textures[card.vegetable];
   sizeBumpAnim(card.sprite);
-  setTimeout(() => {
-    card.sprite._sprites[0].texture = vegetable_card_textures[card.vegetable];
-  }, 100);
 }
 function makeUnwaterVersion(card) {
   card.count -= 1;
   card.watered = false;
   updateCountSprite(card);
   sizeBumpAnim(card.sprite);
+  card.sprite._sprites[0].texture = vegetable_card_textures[card.vegetable];
 }
 var in_intro = true;
 var last_hovering_tile = null;
@@ -8555,6 +8553,9 @@ function step() {
       if (import_shaku.default.input.mouseReleased()) {
         let card_index = hand.indexOf(grabbing_card);
         if (hovering_tile) {
+          if (grabbing_card.type === "veg" && grabbing_card.watered) {
+            grabbing_card.sprite._sprites[0].texture = vegetable_card_textures[grabbing_card.vegetable];
+          }
           grabbing_card.sprite.position.set(CONFIG.board_x + CONFIG.card_w * hovering_tile.x, CONFIG.board_y + CONFIG.card_h * hovering_tile.y);
           board.setV(hovering_tile, grabbing_card);
           onPlaceCard(hovering_tile);

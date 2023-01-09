@@ -498,9 +498,9 @@ function makeWaterVersion(card: VegCard) {
     updateCountSprite(card);
     card.sprite._sprites[0].texture = vegetable_water_card_textures[card.vegetable];
     sizeBumpAnim(card.sprite);
-    setTimeout(() => {
-        card.sprite._sprites[0].texture = vegetable_card_textures[card.vegetable];
-    }, 100)
+    // setTimeout(() => {
+    //     card.sprite._sprites[0].texture = vegetable_card_textures[card.vegetable];
+    // }, 100)
 }
 
 function makeUnwaterVersion(card: VegCard) {
@@ -509,9 +509,7 @@ function makeUnwaterVersion(card: VegCard) {
     updateCountSprite(card);
     // card.sprite._sprites[0].texture = vegetable_water_card_textures[card.vegetable];
     sizeBumpAnim(card.sprite);
-    // setTimeout(() => {
-    //     card.sprite._sprites[0].texture = vegetable_card_textures[card.vegetable];
-    // }, 100)
+    card.sprite._sprites[0].texture = vegetable_card_textures[card.vegetable];
 }
 
 // let intro_time_left = -1;
@@ -583,7 +581,6 @@ function step() {
                     }
                     board.setV(hovering_tile, null);
                 } else if (grabbing_card.type === "crate") {
-                    // todo: juice for crates
                     let seen: Vector2[] = [];
                     for (let k = 0; k < 4; k++) {
                         let cur_pos = hovering_tile.add(DIRS[k]);
@@ -608,6 +605,9 @@ function step() {
                 // stop grabbing
                 let card_index = hand.indexOf(grabbing_card);
                 if (hovering_tile) {
+                    if (grabbing_card.type === "veg" && grabbing_card.watered) {
+                        grabbing_card.sprite._sprites[0].texture = vegetable_card_textures[grabbing_card.vegetable];
+                    }
                     // let new_veg_tile = {
                     //     count: grabbing_card.count,
                     //     vegetable: grabbing_card.vegetable,
