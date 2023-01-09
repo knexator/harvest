@@ -8419,10 +8419,10 @@ function refreshPoints(amount) {
     CONFIG.max_count += 1;
     next_threshold = 40;
   }
-  let digits = points.toString().split("").map((x) => Number(x));
+  let digits = ("000000" + points).slice(-CONFIG.score_digits).split("").map((x) => Number(x));
   for (let k = 0; k < CONFIG.score_digits; k++) {
     let cur = points_spr._sprites[k + 1];
-    cur.setSourceFromSpritesheet(new import_vector2.default(digits[CONFIG.score_digits - 1 - k], 0), new import_vector2.default(10, 1), 1, true);
+    cur.setSourceFromSpritesheet(new import_vector2.default(digits[k], 0), new import_vector2.default(10, 1), 1, true);
   }
   sizeBumpAnim(points_spr);
 }

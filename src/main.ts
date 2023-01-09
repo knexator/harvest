@@ -457,10 +457,10 @@ function refreshPoints(amount: number) {
         CONFIG.max_count += 1;
         next_threshold = 40;
     }
-    let digits = points.toString().split('').map(x => Number(x));
+    let digits = (("000000" + points).slice(-CONFIG.score_digits)).split('').map(x => Number(x));
     for (let k = 0; k < CONFIG.score_digits; k++) {
         let cur = points_spr._sprites[k + 1] as Sprite;
-        cur.setSourceFromSpritesheet(new Vector2(digits[CONFIG.score_digits - 1 - k], 0), new Vector2(10, 1), 1, true);
+        cur.setSourceFromSpritesheet(new Vector2(digits[k], 0), new Vector2(10, 1), 1, true);
     }
     sizeBumpAnim(points_spr);
 }
@@ -524,6 +524,7 @@ let resetting = false;
 let resetting_spr = new Sprite(Shaku.gfx.whiteTexture);
 resetting_spr.size.copy(Shaku.gfx.getCanvasSize());
 resetting_spr.color = Color.fromHex("#327345");
+let resseting_time_left = 0;
 
 // do a single main loop step and request the next step
 function step() {
