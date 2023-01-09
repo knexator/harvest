@@ -9,6 +9,8 @@ import { Grid2D } from "./grid2D";
 import Vector2 from "shaku/lib/utils/vector2";
 import Animator from "shaku/lib/utils/animator";
 import { PixelEffect } from "./pixel_effect";
+import SoundInstance from "shaku/lib/sfx/sound_instance";
+import SoundAsset from "shaku/lib/assets/sound_asset";
 
 /*
 space - get card
@@ -77,7 +79,35 @@ function randomVeg() {
     return [Veg.CARROT, Veg.KALE, Veg.PUMPKIN, Veg.CAULIFLOWER, Veg.CABBAGE, Veg.POTATO][randint(CONFIG.n_types)];
 }
 
+let muted = false;
+
 // LOAD ASSETS
+class SoundCollection {
+    public instances: SoundInstance[]
+    constructor(
+        sources: SoundAsset[]
+    ) {
+        this.instances = sources.map(x => Shaku.sfx.createSound(x));
+    }
+
+    play() {
+        if (muted) return;
+        let options = this.instances.filter(x => !x.playing);
+        if (options.length === 0) {
+            let cur = choice(this.instances)!;
+            cur.stop();
+            cur.play();
+        } else {
+            let cur = choice(options)!;
+            cur.play();
+        }
+    }
+}
+
+// @ts-ignore
+let note_srcs = ["sounds/note1.wav", "sounds/note2.wav", "sounds/note3.wav", "sounds/note4.wav", "sounds/note5.wav"].map(x => Shaku.assets.loadSound(x).asset);
+await Shaku.assets.waitForAll();
+
 const main_font = await Shaku.assets.loadMsdfFontTexture('fonts/Arial.ttf', { jsonUrl: 'fonts/Arial.json', textureUrl: 'fonts/Arial.png' });
 
 const vegetable_textures: Record<Veg, TextureAsset> = {
@@ -107,6 +137,8 @@ const cursor_grabbed = await Shaku.assets.loadTexture("imgs/hand_closed_02.png")
 
 const hole_texture = await Shaku.assets.loadTexture("imgs/soil_00.png");
 const crate_texture = await Shaku.assets.loadTexture("imgs/crate_base.png");
+
+let note_sound = new SoundCollection(note_srcs);
 
 // let soundAsset = await Shaku.assets.loadSound('sounds/example_sound.wav');
 // let soundInstance = Shaku.sfx!.createSound(soundAsset);
@@ -280,7 +312,7 @@ function createScoreSprite(card: Exclude<VegCard, false>, index: number, crate_p
         particles = particles.filter(x => x != veg_sprite);
     });
 
-    sizeBumpAnim(card.sprite, extra_delay + .1 + index * .2);
+    sizeBumpAnim(card.sprite, extra_delay + .1 + index * .1);
 }
 
 function activateCard(pos: Vector2, crate_pos: Vector2 | null, extra_delay: number) {
@@ -294,12 +326,12 @@ function activateCard(pos: Vector2, crate_pos: Vector2 | null, extra_delay: numb
             createScoreSprite(tile, index, crate_pos, extra_delay);
             if (tile.count > 1) {
                 new Animator(tile.sprite).to({ "rotation": tile.sprite.rotation * (-.9 + Math.random() * .2) })
-                    .delay((extra_delay + .1 + index * .2) / .05).duration(.05).play().then(() => {
+                    .delay((extra_delay + .1 + index * .1) / .05).duration(.05).play().then(() => {
                         tile.count -= 1;
                     });
             } else {
                 new Animator(tile.sprite).to({ "position": tile.sprite.position.add(0, Shaku.gfx.canvas.height) }).smoothDamp(true)
-                    .duration(.35).delay((extra_delay + .3 + index * .2) / .35).play().then(() => {
+                    .duration(.35).delay((extra_delay + .3 + index * .1) / .35).play().then(() => {
                         board.setV(p, null);
                     });
             }
@@ -310,10 +342,11 @@ function activateCard(pos: Vector2, crate_pos: Vector2 | null, extra_delay: numb
 }
 
 function onPlaceCard(pos: Vector2) {
+    note_sound.play();
     let placed = board.getV(pos);
     if (!placed) throw new Error("couldn't get the card placed just now");
     if (placed.type === "veg") {
-        activateCard(pos, null, 0)
+        activateCard(pos, null, 0);
     } else if (placed.type === "crate") {
         let delay = 0;
         for (let k = 0; k < 4; k++) {
@@ -382,6 +415,7 @@ function step() {
                 if (cur_hovering_card) {
                     hovering_card = cur_hovering_card;
                     sizeBumpAnim(hovering_card.sprite);
+                    note_sound.play();
                     hover_offset = Shaku.gameTime.elapsed;
                     cursor_spr = cursor_hover_spr;
                 }
@@ -398,6 +432,7 @@ function step() {
                         grabbing_card = hovering_card;
                         hovering_card = null;
                         cursor_spr = cursor_grabbed_spr;
+                        note_sound.play();
                     }
                 }
             }
@@ -432,7 +467,7 @@ function step() {
                     grabbing_card.sprite.position.set(CONFIG.board_x + CONFIG.card_w * hovering_tile.x, CONFIG.board_y + CONFIG.card_h * hovering_tile.y);
                     // new_veg_tile.sprite.size.mulSelf(CONFIG.pixel_scaling);
                     board.setV(hovering_tile, grabbing_card);
-                    onPlaceCard(hovering_tile)
+                    onPlaceCard(hovering_tile);
                     // todo: card dissapear animation
                     hand.splice(card_index, 1);
                     hand.forEach((card, k) => {
@@ -607,6 +642,13 @@ function bezier3(t: number, p0: Vector2, p1: Vector2, p2: Vector2) {
     result.addSelf(p1.mul(2 * t * (1 - t)));
     result.addSelf(p0.mul((1 - t) * (1 - t)));
     return result;
+}
+
+function choice<T>(arr: T[]) {
+    if (arr.length === 0) {
+        return undefined
+    }
+    return arr[Math.floor(Math.random() * arr.length)];
 }
 
 async function loadAsciiTexture(ascii: string, colors: (string | Color)[]): Promise<TextureAsset> {

@@ -10621,6 +10621,28 @@ import_shaku.default.gfx.centerCanvas();
 function randomVeg() {
   return [0 /* CARROT */, 1 /* KALE */, 2 /* PUMPKIN */, 3 /* CAULIFLOWER */, 4 /* CABBAGE */, 5 /* POTATO */][randint(CONFIG.n_types)];
 }
+var muted = false;
+var SoundCollection = class {
+  instances;
+  constructor(sources) {
+    this.instances = sources.map((x) => import_shaku.default.sfx.createSound(x));
+  }
+  play() {
+    if (muted)
+      return;
+    let options = this.instances.filter((x) => !x.playing);
+    if (options.length === 0) {
+      let cur = choice(this.instances);
+      cur.stop();
+      cur.play();
+    } else {
+      let cur = choice(options);
+      cur.play();
+    }
+  }
+};
+var note_srcs = ["sounds/note1.wav", "sounds/note2.wav", "sounds/note3.wav", "sounds/note4.wav", "sounds/note5.wav"].map((x) => import_shaku.default.assets.loadSound(x).asset);
+await import_shaku.default.assets.waitForAll();
 var main_font = await import_shaku.default.assets.loadMsdfFontTexture("fonts/Arial.ttf", { jsonUrl: "fonts/Arial.json", textureUrl: "fonts/Arial.png" });
 var vegetable_textures = {
   0: await import_shaku.default.assets.loadTexture("imgs/carrot.png"),
@@ -10643,6 +10665,7 @@ var cursor_hover = await import_shaku.default.assets.loadTexture("imgs/hand_open
 var cursor_grabbed = await import_shaku.default.assets.loadTexture("imgs/hand_closed_02.png");
 var hole_texture = await import_shaku.default.assets.loadTexture("imgs/soil_00.png");
 var crate_texture = await import_shaku.default.assets.loadTexture("imgs/crate_base.png");
+var note_sound = new SoundCollection(note_srcs);
 var board = Grid2D.init(CONFIG.board_w, CONFIG.board_h, (i, j) => null);
 var hand = [];
 for (let k = 0; k < CONFIG.veg_hand_size; k++) {
@@ -10755,7 +10778,7 @@ function createScoreSprite(card, index, crate_pos, extra_delay) {
   }).duration(0.4).delay((extra_delay + 0.1 + index * 0.1) / 0.4).play().then(() => {
     particles = particles.filter((x) => x != veg_sprite);
   });
-  sizeBumpAnim(card.sprite, extra_delay + 0.1 + index * 0.2);
+  sizeBumpAnim(card.sprite, extra_delay + 0.1 + index * 0.1);
 }
 function activateCard(pos, crate_pos, extra_delay) {
   let connected_group = connectedGroup(pos);
@@ -10766,11 +10789,11 @@ function activateCard(pos, crate_pos, extra_delay) {
       let tile = board.getV(p);
       createScoreSprite(tile, index, crate_pos, extra_delay);
       if (tile.count > 1) {
-        new import_animator.default(tile.sprite).to({ "rotation": tile.sprite.rotation * (-0.9 + Math.random() * 0.2) }).delay((extra_delay + 0.1 + index * 0.2) / 0.05).duration(0.05).play().then(() => {
+        new import_animator.default(tile.sprite).to({ "rotation": tile.sprite.rotation * (-0.9 + Math.random() * 0.2) }).delay((extra_delay + 0.1 + index * 0.1) / 0.05).duration(0.05).play().then(() => {
           tile.count -= 1;
         });
       } else {
-        new import_animator.default(tile.sprite).to({ "position": tile.sprite.position.add(0, import_shaku.default.gfx.canvas.height) }).smoothDamp(true).duration(0.35).delay((extra_delay + 0.3 + index * 0.2) / 0.35).play().then(() => {
+        new import_animator.default(tile.sprite).to({ "position": tile.sprite.position.add(0, import_shaku.default.gfx.canvas.height) }).smoothDamp(true).duration(0.35).delay((extra_delay + 0.3 + index * 0.1) / 0.35).play().then(() => {
           board.setV(p, null);
         });
       }
@@ -10780,6 +10803,7 @@ function activateCard(pos, crate_pos, extra_delay) {
   return false;
 }
 function onPlaceCard(pos) {
+  note_sound.play();
   let placed = board.getV(pos);
   if (!placed)
     throw new Error("couldn't get the card placed just now");
@@ -10842,6 +10866,7 @@ function step() {
         if (cur_hovering_card) {
           hovering_card = cur_hovering_card;
           sizeBumpAnim(hovering_card.sprite);
+          note_sound.play();
           hover_offset = import_shaku.default.gameTime.elapsed;
           cursor_spr = cursor_hover_spr;
         }
@@ -10856,6 +10881,7 @@ function step() {
             grabbing_card = hovering_card;
             hovering_card = null;
             cursor_spr = cursor_grabbed_spr;
+            note_sound.play();
           }
         }
       }
@@ -11007,6 +11033,12 @@ function bezier3(t, p0, p1, p2) {
   result2.addSelf(p1.mul(2 * t * (1 - t)));
   result2.addSelf(p0.mul((1 - t) * (1 - t)));
   return result2;
+}
+function choice(arr) {
+  if (arr.length === 0) {
+    return void 0;
+  }
+  return arr[Math.floor(Math.random() * arr.length)];
 }
 /**
  * A utility to hold gametime.
