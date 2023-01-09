@@ -10599,9 +10599,13 @@ var CONFIG = {
   pixel_scaling: 4,
   card_w: 62,
   card_h: 92,
-  card_x: 640,
+  card_x: 540,
   board_x: 80,
-  board_y: 102 + 10
+  board_y: 102 + 10,
+  deck_x: 650,
+  deck_y: 122,
+  score_x: 650,
+  score_y: 600
 };
 CONFIG.card_w *= CONFIG.card_scaling;
 CONFIG.card_h *= CONFIG.card_scaling;
@@ -10647,6 +10651,7 @@ var SoundCollection = class {
   }
 };
 var background_texture = import_shaku.default.assets.loadTexture("imgs/full_board.png").asset;
+var card_back_texture = import_shaku.default.assets.loadTexture("imgs/card_back.png").asset;
 var note_srcs = ["sounds/note1.wav", "sounds/note2.wav", "sounds/note3.wav", "sounds/note4.wav", "sounds/note5.wav"].map((x) => import_shaku.default.assets.loadSound(x).asset);
 var note_high_srcs = Array(7).fill(0).map((x, k) => import_shaku.default.assets.loadSound(`sounds/h${k + 1}.wav`).asset);
 var note_low_srcs = Array(7).fill(0).map((x, k) => import_shaku.default.assets.loadSound(`sounds/l${k + 1}.wav`).asset);
@@ -10681,6 +10686,9 @@ var cursor_grabbed = await import_shaku.default.assets.loadTexture("imgs/hand_cl
 var crate_card_texture = await import_shaku.default.assets.loadTexture("imgs/card_crate.png");
 var numbers_texture = await import_shaku.default.assets.loadTexture("imgs/numbers.png");
 var score_texture = await import_shaku.default.assets.loadTexture("imgs/score.png");
+var card_back = new import_sprite.default(card_back_texture);
+card_back.position.set(CONFIG.deck_x, CONFIG.deck_y);
+card_back.size.mulSelf(CONFIG.card_scaling * 62 / 42);
 var note_sound = new SoundCollection(note_srcs);
 var note_high_sound = new SoundCollection(note_high_srcs);
 var note_low_sound = new SoundCollection(note_low_srcs);
@@ -10712,6 +10720,13 @@ background_sprite.origin.set(0, 0);
 function baseCardPos(index) {
   return new import_vector2.default(CONFIG.card_x, CONFIG.board_y + CONFIG.card_h * index);
 }
+function updateCountSprite(card) {
+  card.sprite._sprites[1].setSourceFromSpritesheet(new import_vector2.default(card.count, 0), new import_vector2.default(10, 1), 1, true);
+  card.sprite._sprites[1].position.set(0.5, -20);
+  if (card.count === 1) {
+    card.sprite._sprites[1].position.x += 0.5;
+  }
+}
 function addCard() {
   if (Math.random() < 0.991 && hand.every((x) => x.type !== "crate")) {
     addCrateCard();
@@ -10731,18 +10746,11 @@ function addCrateCard() {
   new_crate_card.sprite.add(number_spr);
   updateCountSprite(new_crate_card);
   new_crate_card.sprite.scale.mulSelf(CONFIG.card_scaling);
-  new_crate_card.sprite.position.set(import_shaku.default.gfx.canvas.width / 2, import_shaku.default.gfx.canvas.height * 1.25);
+  new_crate_card.sprite.position.copy(card_back.position);
   new import_animator.default(new_crate_card.sprite).to({
     "position": baseCardPos(hand.length)
-  }).duration(0.2).play();
+  }).duration(0.2).delay(0.5).smoothDamp(true).play();
   hand.push(new_crate_card);
-}
-function updateCountSprite(card) {
-  card.sprite._sprites[1].setSourceFromSpritesheet(new import_vector2.default(card.count, 0), new import_vector2.default(10, 1), 1, true);
-  card.sprite._sprites[1].position.set(0.5, -20);
-  if (card.count === 1) {
-    card.sprite._sprites[1].position.x += 0.5;
-  }
 }
 function addVegCard() {
   let new_veg_card = {
@@ -10758,10 +10766,10 @@ function addVegCard() {
   new_veg_card.sprite.add(number_spr);
   updateCountSprite(new_veg_card);
   new_veg_card.sprite.scale.mulSelf(CONFIG.card_scaling);
-  new_veg_card.sprite.position.set(import_shaku.default.gfx.canvas.width / 2, import_shaku.default.gfx.canvas.height * 1.25);
+  new_veg_card.sprite.position.copy(card_back.position);
   new import_animator.default(new_veg_card.sprite).to({
     "position": baseCardPos(hand.length)
-  }).duration(0.2).play();
+  }).duration(0.2).delay(0.5).smoothDamp(true).play();
   hand.push(new_veg_card);
 }
 function posOverCard(pos, card) {
@@ -11050,6 +11058,7 @@ function step() {
     }
   }
   import_shaku.default.gfx.useEffect(pixel_effect);
+  import_shaku.default.gfx.drawSprite(card_back);
   board.forEach((i, j, tile) => {
     if (tile) {
       import_shaku.default.gfx.drawGroup(tile.sprite, false);

@@ -28,9 +28,13 @@ const CONFIG = {
     pixel_scaling: 4,
     card_w: 62, // + 10,
     card_h: 92, // + 10,
-    card_x: 640,
+    card_x: 540,
     board_x: 80,
     board_y: 102 + 10,
+    deck_x: 650,
+    deck_y: 122,
+    score_x: 650,
+    score_y: 600,
 };
 CONFIG.card_w *= CONFIG.card_scaling;
 CONFIG.card_h *= CONFIG.card_scaling;
@@ -113,6 +117,8 @@ class SoundCollection {
 // @ts-ignore
 let background_texture = Shaku.assets.loadTexture("imgs/full_board.png").asset;
 // @ts-ignore
+let card_back_texture = Shaku.assets.loadTexture("imgs/card_back.png").asset;
+// @ts-ignore
 let note_srcs = ["sounds/note1.wav", "sounds/note2.wav", "sounds/note3.wav", "sounds/note4.wav", "sounds/note5.wav"].map(x => Shaku.assets.loadSound(x).asset);
 // @ts-ignore
 let note_high_srcs = Array(7).fill(0).map((x, k) => Shaku.assets.loadSound(`sounds/h${k + 1}.wav`).asset);
@@ -163,13 +169,6 @@ const crate_card_texture = await Shaku.assets.loadTexture("imgs/card_crate.png")
 const numbers_texture = await Shaku.assets.loadTexture("imgs/numbers.png");
 const score_texture = await Shaku.assets.loadTexture("imgs/score.png");
 
-let note_sound = new SoundCollection(note_srcs);
-let note_high_sound = new SoundCollection(note_high_srcs);
-let note_low_sound = new SoundCollection(note_low_srcs);
-
-// let soundAsset = await Shaku.assets.loadSound('sounds/example_sound.wav');
-// let soundInstance = Shaku.sfx!.createSound(soundAsset);
-
 // GAME LOGIC, GLOBAL OBJECTS
 // let crate = {
 //     pos: new Vector2(0, 0),
@@ -177,6 +176,14 @@ let note_low_sound = new SoundCollection(note_low_srcs);
 //     sprite: new Sprite(crate_texture),
 // }
 // crate.sprite.size.mulSelf(CONFIG.pixel_scaling);
+
+let card_back = new Sprite(card_back_texture);
+card_back.position.set(CONFIG.deck_x, CONFIG.deck_y);
+card_back.size.mulSelf(CONFIG.card_scaling * 62 / 42);
+
+let note_sound = new SoundCollection(note_srcs);
+let note_high_sound = new SoundCollection(note_high_srcs);
+let note_low_sound = new SoundCollection(note_low_srcs);
 
 let board = Grid2D.init<Card | null>(CONFIG.board_w, CONFIG.board_h, (i, j) => null);
 
@@ -256,6 +263,14 @@ function baseCardPos(index: number) {
     return new Vector2(CONFIG.card_x, CONFIG.board_y + CONFIG.card_h * index);
 }
 
+function updateCountSprite(card: Card) {
+    card.sprite._sprites[1].setSourceFromSpritesheet(new Vector2(card.count, 0), new Vector2(10, 1), 1, true)
+    card.sprite._sprites[1].position.set(.5, -20);
+    if (card.count === 1) {
+        card.sprite._sprites[1].position.x += .5;
+    }
+}
+
 function addCard() {
     // todo: remove hack
     if (Math.random() < .991 && hand.every(x => x.type !== "crate")) {
@@ -278,20 +293,12 @@ function addCrateCard() {
     updateCountSprite(new_crate_card);
     new_crate_card.sprite.scale.mulSelf(CONFIG.card_scaling);
 
-    new_crate_card.sprite.position.set(Shaku.gfx.canvas.width / 2, Shaku.gfx.canvas.height * 1.25);
+    new_crate_card.sprite.position.copy(card_back.position);
     new Animator(new_crate_card.sprite).to({
         "position": baseCardPos(hand.length)
-    }).duration(.2).play();
+    }).duration(.2).delay(.5).smoothDamp(true).play();
 
     hand.push(new_crate_card);
-}
-
-function updateCountSprite(card: Card) {
-    card.sprite._sprites[1].setSourceFromSpritesheet(new Vector2(card.count, 0), new Vector2(10, 1), 1, true)
-    card.sprite._sprites[1].position.set(.5, -20);
-    if (card.count === 1) {
-        card.sprite._sprites[1].position.x += .5;
-    }
 }
 
 function addVegCard() {
@@ -309,10 +316,10 @@ function addVegCard() {
     updateCountSprite(new_veg_card);
     new_veg_card.sprite.scale.mulSelf(CONFIG.card_scaling);
 
-    new_veg_card.sprite.position.set(Shaku.gfx.canvas.width / 2, Shaku.gfx.canvas.height * 1.25);
+    new_veg_card.sprite.position.copy(card_back.position);
     new Animator(new_veg_card.sprite).to({
         "position": baseCardPos(hand.length)
-    }).duration(.2).play();
+    }).duration(.2).delay(.5).smoothDamp(true).play();
 
     hand.push(new_veg_card);
 }
@@ -664,6 +671,7 @@ function step() {
 
     // RENDERING
     Shaku.gfx.useEffect(pixel_effect);
+    Shaku.gfx.drawSprite(card_back);
     // board_floor.forEach((i, j, spr) => Shaku.gfx.drawSprite(spr));
     board.forEach((i, j, tile) => {
         if (tile) {
