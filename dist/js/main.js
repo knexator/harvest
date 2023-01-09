@@ -8159,7 +8159,7 @@ document.body.appendChild(import_shaku.default.gfx.canvas);
 import_shaku.default.gfx.setResolution(772, 732, true);
 import_shaku.default.gfx.centerCanvas();
 function randomVeg() {
-  return [0 /* CARROT */, 1 /* KALE */, 2 /* PUMPKIN */, 3 /* CAULIFLOWER */, 4 /* CABBAGE */, 5 /* POTATO */][randint(CONFIG.n_types)];
+  return [0 /* CARROT */, 1 /* KALE */, 2 /* PUMPKIN */][randint(CONFIG.n_types)];
 }
 var muted = false;
 var SoundCollection = class {
@@ -8193,31 +8193,22 @@ var note_srcs = ["sounds/note1.wav", "sounds/note2.wav", "sounds/note3.wav", "so
 var note_high_srcs = Array(7).fill(0).map((x, k) => import_shaku.default.assets.loadSound(`sounds/h${k + 1}.wav`).asset);
 var note_low_srcs = Array(7).fill(0).map((x, k) => import_shaku.default.assets.loadSound(`sounds/l${k + 1}.wav`).asset);
 var triplet_srcs = Array(9).fill(0).map((x, k) => import_shaku.default.assets.loadSound(`sounds/t${k + 1}.wav`).asset);
-await import_shaku.default.assets.waitForAll();
 var vegetable_textures = {
-  0: await import_shaku.default.assets.loadTexture("imgs/carrot.png"),
-  1: await import_shaku.default.assets.loadTexture("imgs/kale.png"),
-  2: await import_shaku.default.assets.loadTexture("imgs/pumpkin.png"),
-  3: await import_shaku.default.assets.loadTexture("imgs/pumpkin.png"),
-  4: await import_shaku.default.assets.loadTexture("imgs/pumpkin.png"),
-  5: await import_shaku.default.assets.loadTexture("imgs/pumpkin.png")
+  0: import_shaku.default.assets.loadTexture("imgs/carrot.png").asset,
+  1: import_shaku.default.assets.loadTexture("imgs/kale.png").asset,
+  2: import_shaku.default.assets.loadTexture("imgs/pumpkin.png").asset
 };
 var vegetable_card_textures = {
-  0: await import_shaku.default.assets.loadTexture("imgs/card_carrot.png"),
-  1: await import_shaku.default.assets.loadTexture("imgs/card_kale.png"),
-  2: await import_shaku.default.assets.loadTexture("imgs/card_pumpkin.png"),
-  3: await import_shaku.default.assets.loadTexture("imgs/card_pumpkin.png"),
-  4: await import_shaku.default.assets.loadTexture("imgs/card_pumpkin.png"),
-  5: await import_shaku.default.assets.loadTexture("imgs/card_pumpkin.png")
+  0: import_shaku.default.assets.loadTexture("imgs/card_carrot.png").asset,
+  1: import_shaku.default.assets.loadTexture("imgs/card_kale.png").asset,
+  2: import_shaku.default.assets.loadTexture("imgs/card_pumpkin.png").asset
 };
 var vegetable_water_card_textures = {
-  0: await import_shaku.default.assets.loadTexture("imgs/water_carrot.png"),
-  1: await import_shaku.default.assets.loadTexture("imgs/water_kale.png"),
-  2: await import_shaku.default.assets.loadTexture("imgs/water_pumpkin.png"),
-  3: await import_shaku.default.assets.loadTexture("imgs/water_pumpkin.png"),
-  4: await import_shaku.default.assets.loadTexture("imgs/water_pumpkin.png"),
-  5: await import_shaku.default.assets.loadTexture("imgs/water_pumpkin.png")
+  0: import_shaku.default.assets.loadTexture("imgs/water_carrot.png").asset,
+  1: import_shaku.default.assets.loadTexture("imgs/water_kale.png").asset,
+  2: import_shaku.default.assets.loadTexture("imgs/water_pumpkin.png").asset
 };
+await import_shaku.default.assets.waitForAll();
 var cursor_default = await import_shaku.default.assets.loadTexture("imgs/cursor_02.png");
 var cursor_hover = await import_shaku.default.assets.loadTexture("imgs/hand_open_02.png");
 var cursor_grabbed = await import_shaku.default.assets.loadTexture("imgs/hand_closed_02.png");

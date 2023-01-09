@@ -71,9 +71,6 @@ enum Veg {
     CARROT,
     KALE,
     PUMPKIN,
-    CAULIFLOWER,
-    CABBAGE,
-    POTATO,
 }
 
 // type VegTile = false | { vegetable: Veg, count: number, sprite: Sprite };
@@ -83,7 +80,7 @@ type CrateCard = { type: "crate", count: number, sprite: SpritesGroup };
 type Card = VegCard | CrateCard;
 
 function randomVeg() {
-    return [Veg.CARROT, Veg.KALE, Veg.PUMPKIN, Veg.CAULIFLOWER, Veg.CABBAGE, Veg.POTATO][randint(CONFIG.n_types)];
+    return [Veg.CARROT, Veg.KALE, Veg.PUMPKIN][randint(CONFIG.n_types)];
 }
 
 let muted = false;
@@ -129,36 +126,37 @@ let note_high_srcs = Array(7).fill(0).map((x, k) => Shaku.assets.loadSound(`soun
 let note_low_srcs = Array(7).fill(0).map((x, k) => Shaku.assets.loadSound(`sounds/l${k + 1}.wav`).asset);
 // @ts-ignore
 let triplet_srcs = Array(9).fill(0).map((x, k) => Shaku.assets.loadSound(`sounds/t${k + 1}.wav`).asset);
-await Shaku.assets.waitForAll();
-
-// const main_font = await Shaku.assets.loadMsdfFontTexture('fonts/Arial.ttf', { jsonUrl: 'fonts/Arial.json', textureUrl: 'fonts/Arial.png' });
 
 const vegetable_textures: Record<Veg, TextureAsset> = {
-    0: await Shaku.assets.loadTexture("imgs/carrot.png"),
-    1: await Shaku.assets.loadTexture("imgs/kale.png"),
-    2: await Shaku.assets.loadTexture("imgs/pumpkin.png"),
-    3: await Shaku.assets.loadTexture("imgs/pumpkin.png"),
-    4: await Shaku.assets.loadTexture("imgs/pumpkin.png"),
-    5: await Shaku.assets.loadTexture("imgs/pumpkin.png"),
+    // @ts-ignore
+    0: Shaku.assets.loadTexture("imgs/carrot.png").asset,
+    // @ts-ignore
+    1: Shaku.assets.loadTexture("imgs/kale.png").asset,
+    // @ts-ignore
+    2: Shaku.assets.loadTexture("imgs/pumpkin.png").asset,
 }
 
 const vegetable_card_textures: Record<Veg, TextureAsset> = {
-    0: await Shaku.assets.loadTexture("imgs/card_carrot.png"),
-    1: await Shaku.assets.loadTexture("imgs/card_kale.png"),
-    2: await Shaku.assets.loadTexture("imgs/card_pumpkin.png"),
-    3: await Shaku.assets.loadTexture("imgs/card_pumpkin.png"),
-    4: await Shaku.assets.loadTexture("imgs/card_pumpkin.png"),
-    5: await Shaku.assets.loadTexture("imgs/card_pumpkin.png"),
+    // @ts-ignore
+    0: Shaku.assets.loadTexture("imgs/card_carrot.png").asset,
+    // @ts-ignore
+    1: Shaku.assets.loadTexture("imgs/card_kale.png").asset,
+    // @ts-ignore
+    2: Shaku.assets.loadTexture("imgs/card_pumpkin.png").asset,
 }
 
 const vegetable_water_card_textures: Record<Veg, TextureAsset> = {
-    0: await Shaku.assets.loadTexture("imgs/water_carrot.png"),
-    1: await Shaku.assets.loadTexture("imgs/water_kale.png"),
-    2: await Shaku.assets.loadTexture("imgs/water_pumpkin.png"),
-    3: await Shaku.assets.loadTexture("imgs/water_pumpkin.png"),
-    4: await Shaku.assets.loadTexture("imgs/water_pumpkin.png"),
-    5: await Shaku.assets.loadTexture("imgs/water_pumpkin.png"),
+    // @ts-ignore
+    0: Shaku.assets.loadTexture("imgs/water_carrot.png").asset,
+    // @ts-ignore
+    1: Shaku.assets.loadTexture("imgs/water_kale.png").asset,
+    // @ts-ignore
+    2: Shaku.assets.loadTexture("imgs/water_pumpkin.png").asset,
 }
+
+await Shaku.assets.waitForAll();
+
+// const main_font = await Shaku.assets.loadMsdfFontTexture('fonts/Arial.ttf', { jsonUrl: 'fonts/Arial.json', textureUrl: 'fonts/Arial.png' });
 
 // const card_texture = await Shaku.assets.loadTexture("imgs/card.png");
 // const card_carrot_texture = await Shaku.assets.loadTexture("imgs/card_carrot.png");
