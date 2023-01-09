@@ -856,3 +856,5 @@ async function loadAsciiTexture(ascii: string, colors: (string | Color)[]): Prom
 
     return renderTarget;
 }
+
+document.getElementById("slide_down")!.innerHTML = "Click to start!";

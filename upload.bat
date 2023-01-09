@@ -1,1 +1,1 @@
-butler push .\dist pinchazumos/king_of_veggies:html 
+butler push .\dist pinchazumos/king-of-veggies:html 

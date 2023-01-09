@@ -8694,6 +8694,7 @@ function choice(arr) {
   }
   return arr[Math.floor(Math.random() * arr.length)];
 }
+document.getElementById("slide_down").innerHTML = "Click to start!";
 /**
  * A utility to hold gametime.
  * 
