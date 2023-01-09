@@ -20,8 +20,8 @@ space - get card
 const CONFIG = {
     board_w: 6,
     board_h: 5,
-    max_count: 6,
-    veg_hand_size: 6,
+    max_count: 5,
+    veg_hand_size: 5,
     n_types: 3,
 
     card_scaling: 1.15,
@@ -41,13 +41,13 @@ const CONFIG = {
 };
 CONFIG.card_w *= CONFIG.card_scaling;
 CONFIG.card_h *= CONFIG.card_scaling;
-let gui = new dat.GUI({});
-gui.remember(CONFIG);
-gui.add(CONFIG, "board_w", 2, 9, 1);
-gui.add(CONFIG, "board_h", 2, 9, 1);
-gui.add(CONFIG, "max_count", 3, 9, 1);
-gui.add(CONFIG, "veg_hand_size", 3, 9, 1);
-gui.add(CONFIG, "n_types", 2, 5, 1);
+// let gui = new dat.GUI({});
+// gui.remember(CONFIG);
+// gui.add(CONFIG, "board_w", 2, 9, 1);
+// gui.add(CONFIG, "board_h", 2, 9, 1);
+// gui.add(CONFIG, "max_count", 3, 9, 1);
+// gui.add(CONFIG, "veg_hand_size", 3, 9, 1);
+// gui.add(CONFIG, "n_types", 2, 5, 1);
 // gui.add(CONFIG, "value_2", -1, 1);
 // gui.hide();
 
@@ -170,6 +170,7 @@ const cursor_grabbed = await Shaku.assets.loadTexture("imgs/hand_closed_02.png")
 const crate_card_texture = await Shaku.assets.loadTexture("imgs/card_crate.png");
 
 const numbers_texture = await Shaku.assets.loadTexture("imgs/numbers.png");
+const numbers_2_texture = await Shaku.assets.loadTexture("imgs/numbers_2.png");
 const score_texture = await Shaku.assets.loadTexture("imgs/score.png");
 
 // GAME LOGIC, GLOBAL OBJECTS
@@ -244,6 +245,7 @@ let hover_offset = 0;
 const pixel_effect = Shaku.gfx.createEffect(PixelEffect);
 
 let particles: Sprite[] = [];
+let floating_cards: Card[] = [];
 
 const cursor_default_spr = new Sprite(cursor_default);
 cursor_default_spr.origin = Vector2.zero;
@@ -277,10 +279,13 @@ function baseCardPos(index: number) {
 }
 
 function updateCountSprite(card: Card) {
-    card.sprite._sprites[1].setSourceFromSpritesheet(new Vector2(card.count, 0), new Vector2(10, 1), 1, true)
+    card.sprite._sprites[1].setSourceFromSpritesheet(new Vector2(card.count, 0), new Vector2(9, 1), 1, true)
     card.sprite._sprites[1].position.set(.5, -20);
     if (card.count === 1) {
         card.sprite._sprites[1].position.x += .5;
+    }
+    if (card.type === "crate") {
+        card.sprite._sprites[1].color = Color.black;
     }
 }
 
@@ -301,7 +306,7 @@ function addCrateCard() {
     }
     let card_spr = new Sprite(crate_card_texture);
     new_crate_card.sprite.add(card_spr);
-    let number_spr = new Sprite(numbers_texture).clone();
+    let number_spr = new Sprite(numbers_2_texture).clone();
     new_crate_card.sprite.add(number_spr);
     updateCountSprite(new_crate_card);
     new_crate_card.sprite.scale.mulSelf(CONFIG.card_scaling);
@@ -324,7 +329,7 @@ function addVegCard() {
     }
     let card_spr = new Sprite(vegetable_card_textures[new_veg_card.vegetable]);
     new_veg_card.sprite.add(card_spr);
-    let number_spr = new Sprite(numbers_texture).clone();
+    let number_spr = new Sprite(numbers_2_texture).clone();
     new_veg_card.sprite.add(number_spr);
     updateCountSprite(new_veg_card);
     new_veg_card.sprite.scale.mulSelf(CONFIG.card_scaling);
@@ -379,13 +384,13 @@ function createScoreSprite(card: Exclude<VegCard, false>, index: number, crate_p
 
 function activateCard(pos: Vector2, crate_pos: Vector2 | null, extra_delay: number) {
     let connected_group = connectedGroup(pos);
-    if (connected_group.length > 1) {
+    if (connected_group.length > 1 || (crate_pos !== null && connected_group.length >= 1)) {
         // todo: anim stuff to points
         // points += connected_group.length;
         connected_group.forEach((p, index) => {
             let tile = board.getV(p) as Exclude<VegCard, false>;
             createScoreSprite(tile, index, crate_pos, extra_delay);
-            if (tile.count > 1) {
+            if (tile.count >= 1) {
                 new Animator(tile.sprite).to({ "rotation": tile.sprite.rotation * (-.9 + Math.random() * .2) })
                     .delay((extra_delay + .1 + index * .1) / .05).duration(.05).play().then(() => {
                         tile.count -= 1;
@@ -419,7 +424,7 @@ function onPlaceCard(pos: Vector2) {
             let tile = board.getV(cur_pos, null);
             if (tile && tile.count === placed.count) {
                 let new_seen = activateCard(cur_pos, placed.sprite.position, delay);
-                if (new_seen.length > 1) {
+                if (new_seen.length >= 1) {
                     new Animator(placed.sprite)
                         .to({ "rotation": rotation * (-.9 + Math.random() * .2) })
                         .delay((delay) / .05).duration(.05).play();
@@ -429,9 +434,11 @@ function onPlaceCard(pos: Vector2) {
                 }
             }
         }
+        floating_cards.push(placed);
         new Animator(placed.sprite).to({ "position": eater_pos }).smoothDamp(true)
             .duration(.35).delay((delay + .3) / .35).play().then(() => {
                 board.setV(pos, null);
+                floating_cards = floating_cards.filter(x => x !== placed);
             });
     }
 }
@@ -716,7 +723,8 @@ function step() {
         cur_num.scale.set(CONFIG.pixel_scaling, CONFIG.pixel_scaling);
         Shaku.gfx.drawGroup(cur_num, false);
         Shaku.gfx.useEffect(pixel_effect);*/
-    })
+    });
+    floating_cards.forEach(card => Shaku.gfx.drawGroup(card.sprite, false));
     particles.forEach(x => {
         Shaku.gfx.drawSprite(x);
     });
