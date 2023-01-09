@@ -90,15 +90,21 @@ class SoundCollection {
         this.instances = sources.map(x => Shaku.sfx.createSound(x));
     }
 
-    play() {
+    play(vol: number | null = null) {
         if (muted) return;
         let options = this.instances.filter(x => !x.playing);
         if (options.length === 0) {
             let cur = choice(this.instances)!;
             cur.stop();
+            if (vol !== null) {
+                cur.volume = vol
+            }
             cur.play();
         } else {
             let cur = choice(options)!;
+            if (vol !== null) {
+                cur.volume = vol
+            }
             cur.play();
         }
     }
@@ -106,17 +112,21 @@ class SoundCollection {
 
 // @ts-ignore
 let note_srcs = ["sounds/note1.wav", "sounds/note2.wav", "sounds/note3.wav", "sounds/note4.wav", "sounds/note5.wav"].map(x => Shaku.assets.loadSound(x).asset);
+// @ts-ignore
+let note_high_srcs = Array(7).fill(0).map((x, k) => Shaku.assets.loadSound(`sounds/h${k + 1}.wav`).asset);
+// @ts-ignore
+let note_low_srcs = Array(7).fill(0).map((x, k) => Shaku.assets.loadSound(`sounds/l${k + 1}.wav`).asset);
 await Shaku.assets.waitForAll();
 
-const main_font = await Shaku.assets.loadMsdfFontTexture('fonts/Arial.ttf', { jsonUrl: 'fonts/Arial.json', textureUrl: 'fonts/Arial.png' });
+// const main_font = await Shaku.assets.loadMsdfFontTexture('fonts/Arial.ttf', { jsonUrl: 'fonts/Arial.json', textureUrl: 'fonts/Arial.png' });
 
 const vegetable_textures: Record<Veg, TextureAsset> = {
     0: await Shaku.assets.loadTexture("imgs/carrot.png"),
     1: await Shaku.assets.loadTexture("imgs/kale.png"),
     2: await Shaku.assets.loadTexture("imgs/pumpkin.png"),
-    3: await Shaku.assets.loadTexture("imgs/cauliflower_04.png"),
-    4: await Shaku.assets.loadTexture("imgs/cabbage_04.png"),
-    5: await Shaku.assets.loadTexture("imgs/potato_04.png"),
+    3: await Shaku.assets.loadTexture("imgs/pumpkin.png"),
+    4: await Shaku.assets.loadTexture("imgs/pumpkin.png"),
+    5: await Shaku.assets.loadTexture("imgs/pumpkin.png"),
 }
 
 const vegetable_card_textures: Record<Veg, TextureAsset> = {
@@ -136,9 +146,15 @@ const cursor_hover = await Shaku.assets.loadTexture("imgs/hand_open_02.png");
 const cursor_grabbed = await Shaku.assets.loadTexture("imgs/hand_closed_02.png");
 
 const hole_texture = await Shaku.assets.loadTexture("imgs/soil_00.png");
-const crate_texture = await Shaku.assets.loadTexture("imgs/crate_base.png");
+// const crate_texture = await Shaku.assets.loadTexture("imgs/crate_base.png");
+const crate_card_texture = await Shaku.assets.loadTexture("imgs/card_crate.png");
+
+const numbers_texture = await Shaku.assets.loadTexture("imgs/numbers.png");
+const score_texture = await Shaku.assets.loadTexture("imgs/score.png");
 
 let note_sound = new SoundCollection(note_srcs);
+let note_high_sound = new SoundCollection(note_high_srcs);
+let note_low_sound = new SoundCollection(note_low_srcs);
 
 // let soundAsset = await Shaku.assets.loadSound('sounds/example_sound.wav');
 // let soundInstance = Shaku.sfx!.createSound(soundAsset);
@@ -170,6 +186,16 @@ let board = Grid2D.init<Card | null>(CONFIG.board_w, CONFIG.board_h, (i, j) => n
     board.setV(crate_pos, original_crate_card);
 }*/
 
+// const card_numbers: Sprite[] = [];
+// for (let k = 0; k < 10; k++) {
+//     let cur = new Sprite(numbers_texture);
+//     cur.setSourceFromSpritesheet(new Vector2(k, 0), new Vector2(10, 1), 1, true);
+//     card_numbers.push(cur);
+//     // let cur = Shaku.gfx.buildText(main_font, k.toString(), 7, Color.black);
+//     // cur._sprites.forEach(spr => spr.position.addSelf(-1.5, -9));
+//     // numbers.push(cur);
+// }
+
 let hand: Card[] = [];
 for (let k = 0; k < CONFIG.veg_hand_size; k++) {
     addCard();
@@ -189,13 +215,6 @@ let board_floor = Grid2D.init<Sprite>(CONFIG.board_w, CONFIG.board_h, (i, j) => 
     res.static = true;
     return res;
 });
-
-const numbers: SpritesGroup[] = [];
-for (let k = 0; k < 10; k++) {
-    let cur = Shaku.gfx.buildText(main_font, k.toString(), 7, Color.black);
-    cur._sprites.forEach(spr => spr.position.addSelf(-1.5, -9));
-    numbers.push(cur);
-}
 
 const DIRS = [Vector2.right, Vector2.down, Vector2.left, Vector2.up];
 
@@ -239,11 +258,12 @@ function addCrateCard() {
         sprite: new SpritesGroup(),
         count: 1 + randint(CONFIG.max_count),
     }
-    let asdf = new Sprite(Shaku.gfx.whiteTexture);
-    asdf.size.set((CONFIG.card_w - 10) / CONFIG.pixel_scaling, (CONFIG.card_h - 10) / CONFIG.pixel_scaling);
-    new_crate_card.sprite.add(asdf);
-    new_crate_card.sprite.add(new Sprite(crate_texture));
-    new_crate_card.sprite.scale.mulSelf(CONFIG.pixel_scaling);
+    let card_spr = new Sprite(crate_card_texture);
+    new_crate_card.sprite.add(card_spr);
+    let number_spr = new Sprite(numbers_texture).clone();
+    new_crate_card.sprite.add(number_spr);
+    updateCountSprite(new_crate_card);
+    new_crate_card.sprite.scale.mulSelf(CONFIG.card_scaling);
 
     new_crate_card.sprite.position.set(Shaku.gfx.canvas.width / 2, Shaku.gfx.canvas.height * 1.25);
     new Animator(new_crate_card.sprite).to({
@@ -253,6 +273,14 @@ function addCrateCard() {
     hand.push(new_crate_card);
 }
 
+function updateCountSprite(card: Card) {
+    card.sprite._sprites[1].setSourceFromSpritesheet(new Vector2(card.count, 0), new Vector2(10, 1), 1, true)
+    card.sprite._sprites[1].position.set(.5, -20);
+    if (card.count === 1) {
+        card.sprite._sprites[1].position.x += .5;
+    }
+}
+
 function addVegCard() {
     let new_veg_card: VegCard = {
         type: "veg",
@@ -260,13 +288,11 @@ function addVegCard() {
         count: randint(CONFIG.max_count) + 1,
         sprite: new SpritesGroup(),
     }
-    // let asdf = new Sprite(Shaku.gfx.whiteTexture);
-    // asdf.size.set(CONFIG.card_w * .9 / CONFIG.pixel_scaling, CONFIG.card_h * .9 / CONFIG.pixel_scaling);
-    // new_veg_card.sprite.add(asdf);
-    // new_veg_card.sprite.add(new Sprite(vegetable_textures[new_veg_card.vegetable]));
     let card_spr = new Sprite(vegetable_card_textures[new_veg_card.vegetable]);
-    // card_spr.setSourceFromSpritesheet(new Vector2(0, 0), new Vector2(1, 1), 1, true);
     new_veg_card.sprite.add(card_spr);
+    let number_spr = new Sprite(numbers_texture).clone();
+    new_veg_card.sprite.add(number_spr);
+    updateCountSprite(new_veg_card);
     new_veg_card.sprite.scale.mulSelf(CONFIG.card_scaling);
 
     new_veg_card.sprite.position.set(Shaku.gfx.canvas.width / 2, Shaku.gfx.canvas.height * 1.25);
@@ -329,6 +355,7 @@ function activateCard(pos: Vector2, crate_pos: Vector2 | null, extra_delay: numb
                 new Animator(tile.sprite).to({ "rotation": tile.sprite.rotation * (-.9 + Math.random() * .2) })
                     .delay((extra_delay + .1 + index * .1) / .05).duration(.05).play().then(() => {
                         tile.count -= 1;
+                        updateCountSprite(tile);
                     });
             } else {
                 new Animator(tile.sprite).to({ "position": tile.sprite.position.add(0, Shaku.gfx.canvas.height) }).smoothDamp(true)
@@ -337,25 +364,34 @@ function activateCard(pos: Vector2, crate_pos: Vector2 | null, extra_delay: numb
                     });
             }
         });
-        return true;
+        return connected_group;
     }
-    return false;
+    return connected_group;
 }
 
 function onPlaceCard(pos: Vector2) {
-    note_sound.play();
+    note_low_sound.play(1.);
     let placed = board.getV(pos);
     if (!placed) throw new Error("couldn't get the card placed just now");
     if (placed.type === "veg") {
         activateCard(pos, null, 0);
     } else if (placed.type === "crate") {
         let delay = 0;
+        let rotation = placed.sprite.rotation;
+        let seen: Vector2[] = [];
         for (let k = 0; k < 4; k++) {
             let cur_pos = pos.add(DIRS[k]);
+            if (seen.some(x => x === cur_pos)) continue;
             let tile = board.getV(cur_pos, null);
             if (tile && tile.count === placed.count) {
-                if (activateCard(cur_pos, pos, delay)) {
+                let new_seen = activateCard(cur_pos, pos, delay);
+                if (new_seen.length > 1) {
+                    new Animator(placed.sprite)
+                        .to({ "rotation": rotation * (-.9 + Math.random() * .2) })
+                        .delay((delay) / .05).duration(.05).play();
+                    rotation *= -1;
                     delay += .5;
+                    seen = seen.concat(new_seen);
                 }
             }
         }
@@ -363,8 +399,9 @@ function onPlaceCard(pos: Vector2) {
 }
 
 function refreshPoints() {
-    points_spr = Shaku.gfx.buildText(main_font, `Points: ${points}`, 20, Color.black);
-    points_spr.position.copy(points_pos);
+    // todo: draw points
+    // points_spr = Shaku.gfx.buildText(main_font, `Points: ${points}`, 20, Color.black);
+    // points_spr.position.copy(points_pos);
 }
 
 function connectedGroup(pos: Vector2): Vector2[] {
@@ -416,7 +453,7 @@ function step() {
                 if (cur_hovering_card) {
                     hovering_card = cur_hovering_card;
                     sizeBumpAnim(hovering_card.sprite);
-                    note_sound.play();
+                    note_high_sound.play(.4);
                     hover_offset = Shaku.gameTime.elapsed;
                     cursor_spr = cursor_hover_spr;
                 }
@@ -433,20 +470,23 @@ function step() {
                         grabbing_card = hovering_card;
                         hovering_card = null;
                         cursor_spr = cursor_grabbed_spr;
-                        note_sound.play();
+                        note_high_sound.play(1.);
                     }
                 }
             }
         } else {
             let hovering_tile = tileUnderPos(Shaku.input.mousePosition);
             if (hovering_tile && board.getV(hovering_tile)) hovering_tile = null;
-            if (hovering_tile && (last_hovering_tile === null || !last_hovering_tile.equals(hovering_tile))) {
-                note_sound.play();
+            if (hovering_tile) {
+                if (last_hovering_tile === null || !last_hovering_tile.equals(hovering_tile)) {
+                    note_low_sound.play(.3);
+                }
                 if (grabbing_card.type === "veg") {
                     board.setV(hovering_tile, grabbing_card);
                     let connected_group = connectedGroup(hovering_tile);
                     if (connected_group.length > 1) {
                         connected_group.forEach((p, index) => {
+                            console.log("hola");
                             let tile = board.getV(p) as Exclude<VegCard, false>;
                             tile.sprite.rotation += Math.sin(index * .7 + Shaku.gameTime.elapsed * 10) * Shaku.gameTime.delta * .5;
                             tile.sprite.rotation *= .99;
@@ -479,7 +519,14 @@ function step() {
                             "position": baseCardPos(k),
                             "rotation": 0,
                         }).duration(.2).play();
-                    })
+                    });
+                    if (hand.length === 1) {
+                        for (let k = 1; k < CONFIG.veg_hand_size; k++) {
+                            setTimeout(() => {
+                                addCard();
+                            }, k * 250);
+                        }
+                    }
                 } else {
                     new Animator(grabbing_card.sprite).to({
                         "position": baseCardPos(card_index),
@@ -512,14 +559,17 @@ function step() {
             if (hovering_card) {
                 // @ts-ignore
                 hovering_card.count += delta;
+                updateCountSprite(hovering_card);
             } else if (grabbing_card) {
                 // @ts-ignore
                 grabbing_card.count += delta;
+                updateCountSprite(grabbing_card);
             } else if (hovering_tile) {
                 let asdf = board.getV(hovering_tile);
                 if (asdf) {
                     // @ts-ignore
                     asdf.count += delta;
+                    updateCountSprite(asdf);
                 }
             }
         }
@@ -573,33 +623,33 @@ function step() {
     board.forEach((i, j, tile) => {
         if (tile) {
             Shaku.gfx.drawGroup(tile.sprite, false);
-            Shaku.gfx.useEffect(Shaku.gfx.builtinEffects.MsdfFont);
+            /*Shaku.gfx.useEffect(Shaku.gfx.builtinEffects.MsdfFont);
             let cur_num = numbers[tile.count];
             cur_num.position.copy(tile.sprite.position);
             cur_num.rotation = 0;
             cur_num.scale.set(CONFIG.pixel_scaling, CONFIG.pixel_scaling);
             Shaku.gfx.drawGroup(cur_num, false);
-            Shaku.gfx.useEffect(pixel_effect);
+            Shaku.gfx.useEffect(pixel_effect);*/
         }
     })
     hand.forEach(card => {
         Shaku.gfx.drawGroup(card.sprite, false);
-        Shaku.gfx.useEffect(Shaku.gfx.builtinEffects.MsdfFont);
+        /*Shaku.gfx.useEffect(Shaku.gfx.builtinEffects.MsdfFont);
         let cur_num = numbers[card.count];
         cur_num.position.copy(card.sprite.position);
         cur_num.rotation = card.sprite.rotation;
         // cur_num.scale.copy(card.sprite.scale);
         cur_num.scale.set(CONFIG.pixel_scaling, CONFIG.pixel_scaling);
         Shaku.gfx.drawGroup(cur_num, false);
-        Shaku.gfx.useEffect(pixel_effect);
+        Shaku.gfx.useEffect(pixel_effect);*/
     })
     particles.forEach(x => {
         Shaku.gfx.drawSprite(x);
     });
 
-    Shaku.gfx.useEffect(Shaku.gfx.builtinEffects.MsdfFont);
-    Shaku.gfx.drawGroup(points_spr, false);
-    Shaku.gfx.useEffect(pixel_effect);
+    // Shaku.gfx.useEffect(Shaku.gfx.builtinEffects.MsdfFont);
+    // Shaku.gfx.drawGroup(points_spr, false);
+    // Shaku.gfx.useEffect(pixel_effect);
 
     cursor_spr.position.copy(Shaku.input.mousePosition);
     Shaku.gfx.drawSprite(cursor_spr);
