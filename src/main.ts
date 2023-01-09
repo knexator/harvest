@@ -303,7 +303,7 @@ function addCrateCard() {
     let new_crate_card: CrateCard = {
         type: "crate",
         sprite: new SpritesGroup(),
-        count: 1 + randint(CONFIG.max_count),
+        count: randint(CONFIG.max_count),
     }
     let card_spr = new Sprite(crate_card_texture);
     new_crate_card.sprite.add(card_spr);
@@ -324,7 +324,7 @@ function addVegCard() {
     let new_veg_card: VegCard = {
         type: "veg",
         vegetable: randomVeg(),
-        count: randint(CONFIG.max_count) + 1,
+        count: randint(CONFIG.max_count),
         sprite: new SpritesGroup(),
         watered: false,
     }
@@ -520,6 +520,11 @@ let in_intro = true;
 
 let last_hovering_tile: Vector2 | null = null;
 
+let resetting = false;
+let resetting_spr = new Sprite(Shaku.gfx.whiteTexture);
+resetting_spr.size.copy(Shaku.gfx.getCanvasSize());
+resetting_spr.color = Color.fromHex("#327345");
+
 // do a single main loop step and request the next step
 function step() {
     // start a new frame and clear screen
@@ -643,6 +648,18 @@ function step() {
                 }
                 cursor_spr = cursor_default_spr;
                 grabbing_card = null;
+
+                setTimeout(() => {
+                    let board_full = true;
+                    board.forEach((i, j, card) => {
+                        if (card === null) {
+                            board_full = false;
+                        }
+                    });
+                    if (board_full) {
+                        resetting = true;
+                    }
+                }, 2000);
             } else {
                 // grabbing_card.sprite.rotation = Math.sin((Shaku.gameTime.elapsed - hover_offset) * 5) * .05;
                 // grabbing_card.sprite.position.copy(Shaku.input.mousePosition.add(card_grab_offset));
@@ -728,6 +745,7 @@ function step() {
     // RENDERING
     Shaku.gfx.useEffect(pixel_effect);
     Shaku.gfx.drawSprite(card_back);
+    Shaku.gfx.drawGroup(points_spr, false);
     // board_floor.forEach((i, j, spr) => Shaku.gfx.drawSprite(spr));
     board.forEach((i, j, tile) => {
         if (tile) {
@@ -760,9 +778,9 @@ function step() {
         Shaku.gfx.drawSprite(x);
     });
 
-    // Shaku.gfx.useEffect(Shaku.gfx.builtinEffects.MsdfFont);
-    Shaku.gfx.drawGroup(points_spr, false);
-    // Shaku.gfx.useEffect(pixel_effect);
+    if (resetting) {
+        Shaku.gfx.drawGroup(points_spr, false);
+    }
 
     cursor_spr.position.copy(Shaku.input.mousePosition);
     Shaku.gfx.drawSprite(cursor_spr);

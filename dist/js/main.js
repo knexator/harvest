@@ -8283,7 +8283,7 @@ function addCrateCard() {
   let new_crate_card = {
     type: "crate",
     sprite: new import_sprites_group.default(),
-    count: 1 + randint(CONFIG.max_count)
+    count: randint(CONFIG.max_count)
   };
   let card_spr = new import_sprite.default(crate_card_texture);
   new_crate_card.sprite.add(card_spr);
@@ -8301,7 +8301,7 @@ function addVegCard() {
   let new_veg_card = {
     type: "veg",
     vegetable: randomVeg(),
-    count: randint(CONFIG.max_count) + 1,
+    count: randint(CONFIG.max_count),
     sprite: new import_sprites_group.default(),
     watered: false
   };
@@ -8469,6 +8469,10 @@ function makeUnwaterVersion(card) {
 }
 var in_intro = true;
 var last_hovering_tile = null;
+var resetting = false;
+var resetting_spr = new import_sprite.default(import_shaku.default.gfx.whiteTexture);
+resetting_spr.size.copy(import_shaku.default.gfx.getCanvasSize());
+resetting_spr.color = import_color.default.fromHex("#327345");
 function step() {
   import_shaku.default.startFrame();
   import_shaku.default.gfx.drawSprite(background_sprite);
@@ -8579,6 +8583,17 @@ function step() {
         }
         cursor_spr = cursor_default_spr;
         grabbing_card = null;
+        setTimeout(() => {
+          let board_full = true;
+          board.forEach((i, j, card) => {
+            if (card === null) {
+              board_full = false;
+            }
+          });
+          if (board_full) {
+            resetting = true;
+          }
+        }, 2e3);
       } else {
         if (hovering_tile) {
           let board_pos = new import_vector2.default(CONFIG.board_x + CONFIG.card_w * hovering_tile.x, CONFIG.board_y + CONFIG.card_h * hovering_tile.y);
@@ -8645,6 +8660,7 @@ function step() {
   }
   import_shaku.default.gfx.useEffect(pixel_effect);
   import_shaku.default.gfx.drawSprite(card_back);
+  import_shaku.default.gfx.drawGroup(points_spr, false);
   board.forEach((i, j, tile) => {
     if (tile) {
       import_shaku.default.gfx.drawGroup(tile.sprite, false);
@@ -8660,7 +8676,9 @@ function step() {
   particles.forEach((x) => {
     import_shaku.default.gfx.drawSprite(x);
   });
-  import_shaku.default.gfx.drawGroup(points_spr, false);
+  if (resetting) {
+    import_shaku.default.gfx.drawGroup(points_spr, false);
+  }
   cursor_spr.position.copy(import_shaku.default.input.mousePosition);
   import_shaku.default.gfx.drawSprite(cursor_spr);
   import_shaku.default.endFrame();
