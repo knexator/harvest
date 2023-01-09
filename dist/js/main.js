@@ -8583,7 +8583,6 @@ function step() {
         cursor_spr = cursor_default_spr;
         grabbing_card = null;
       } else {
-        grabbing_card.sprite.rotation = Math.sin((import_shaku.default.gameTime.elapsed - hover_offset) * 5) * 0.05;
         if (hovering_tile) {
           let board_pos = new import_vector2.default(CONFIG.board_x + CONFIG.card_w * hovering_tile.x, CONFIG.board_y + CONFIG.card_h * hovering_tile.y);
           grabbing_card.sprite.position.copy(

@@ -641,7 +641,7 @@ function step() {
                 cursor_spr = cursor_default_spr;
                 grabbing_card = null;
             } else {
-                grabbing_card.sprite.rotation = Math.sin((Shaku.gameTime.elapsed - hover_offset) * 5) * .05;
+                // grabbing_card.sprite.rotation = Math.sin((Shaku.gameTime.elapsed - hover_offset) * 5) * .05;
                 // grabbing_card.sprite.position.copy(Shaku.input.mousePosition.add(card_grab_offset));
                 if (hovering_tile) {
                     let board_pos = new Vector2(CONFIG.board_x + CONFIG.card_w * hovering_tile.x, CONFIG.board_y + CONFIG.card_h * hovering_tile.y);
