@@ -127,6 +127,8 @@ let note_srcs = ["sounds/note1.wav", "sounds/note2.wav", "sounds/note3.wav", "so
 let note_high_srcs = Array(7).fill(0).map((x, k) => Shaku.assets.loadSound(`sounds/h${k + 1}.wav`).asset);
 // @ts-ignore
 let note_low_srcs = Array(7).fill(0).map((x, k) => Shaku.assets.loadSound(`sounds/l${k + 1}.wav`).asset);
+// @ts-ignore
+let triplet_srcs = Array(9).fill(0).map((x, k) => Shaku.assets.loadSound(`sounds/t${k + 1}.wav`).asset);
 await Shaku.assets.waitForAll();
 
 // const main_font = await Shaku.assets.loadMsdfFontTexture('fonts/Arial.ttf', { jsonUrl: 'fonts/Arial.json', textureUrl: 'fonts/Arial.png' });
@@ -188,6 +190,7 @@ card_back.size.mulSelf(CONFIG.card_scaling * 62 / 42);
 let note_sound = new SoundCollection(note_srcs);
 let note_high_sound = new SoundCollection(note_high_srcs);
 let note_low_sound = new SoundCollection(note_low_srcs);
+let triplet_sounds = triplet_srcs.map(x => Shaku.sfx.createSound(x));
 
 let board = Grid2D.init<Card | null>(CONFIG.board_w, CONFIG.board_h, (i, j) => null);
 
@@ -357,7 +360,7 @@ function tileUnderPos(pos: Vector2): Vector2 | null {
     return new Vector2(i, j);
 }
 
-function createScoreSprite(card: Exclude<VegCard, false>, index: number, crate_pos: Vector2 | null, extra_delay: number) {
+function createScoreSprite(card: Exclude<VegCard, false>, index: number, crate_pos: Vector2 | null, extra_delay: number, first: boolean) {
     let veg_sprite = new Sprite(vegetable_textures[card.vegetable]);
     veg_sprite.setSourceFromSpritesheet(Vector2.zero, Vector2.one, 1, true);
     veg_sprite.origin.set(.5, 1);
@@ -376,6 +379,11 @@ function createScoreSprite(card: Exclude<VegCard, false>, index: number, crate_p
     }).duration(.40).delay((extra_delay + .1 + index * .1) / .40).play().then(() => {
         particles = particles.filter(x => x != veg_sprite);
         refreshPoints(1);
+        if (first) {
+            console.log("card.count: ", card.count);
+            // @ts-ignore
+            Shaku.sfx.play(triplet_srcs[card.count + 1]);
+        }
     });
 
     // note_sound.play();
@@ -389,7 +397,7 @@ function activateCard(pos: Vector2, crate_pos: Vector2 | null, extra_delay: numb
         // points += connected_group.length;
         connected_group.forEach((p, index) => {
             let tile = board.getV(p) as Exclude<VegCard, false>;
-            createScoreSprite(tile, index, crate_pos, extra_delay);
+            createScoreSprite(tile, index, crate_pos, extra_delay, index === 0);
             if (tile.count >= 1) {
                 new Animator(tile.sprite).to({ "rotation": tile.sprite.rotation * (-.9 + Math.random() * .2) })
                     .delay((extra_delay + .1 + index * .1) / .05).duration(.05).play().then(() => {
@@ -397,9 +405,12 @@ function activateCard(pos: Vector2, crate_pos: Vector2 | null, extra_delay: numb
                         updateCountSprite(tile);
                     });
             } else {
+                floating_cards.push(tile);
+                tile.count -= 1;
                 new Animator(tile.sprite).to({ "position": tile.sprite.position.add(0, Shaku.gfx.canvas.height) }).smoothDamp(true)
                     .duration(.35).delay((extra_delay + .3 + index * .1) / .35).play().then(() => {
                         board.setV(p, null);
+                        floating_cards = floating_cards.filter(x => x !== tile);
                     });
             }
         });
@@ -616,7 +627,7 @@ function step() {
                 cursor_spr = cursor_default_spr;
                 grabbing_card = null;
             } else {
-                grabbing_card.sprite.rotation = Math.sin((Shaku.gameTime.elapsed - hover_offset) * 5) * .1;
+                grabbing_card.sprite.rotation = Math.sin((Shaku.gameTime.elapsed - hover_offset) * 5) * .05;
                 // grabbing_card.sprite.position.copy(Shaku.input.mousePosition.add(card_grab_offset));
                 if (hovering_tile) {
                     let board_pos = new Vector2(CONFIG.board_x + CONFIG.card_w * hovering_tile.x, CONFIG.board_y + CONFIG.card_h * hovering_tile.y);

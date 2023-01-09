@@ -8192,6 +8192,7 @@ var card_back_texture = import_shaku.default.assets.loadTexture("imgs/card_back.
 var note_srcs = ["sounds/note1.wav", "sounds/note2.wav", "sounds/note3.wav", "sounds/note4.wav", "sounds/note5.wav"].map((x) => import_shaku.default.assets.loadSound(x).asset);
 var note_high_srcs = Array(7).fill(0).map((x, k) => import_shaku.default.assets.loadSound(`sounds/h${k + 1}.wav`).asset);
 var note_low_srcs = Array(7).fill(0).map((x, k) => import_shaku.default.assets.loadSound(`sounds/l${k + 1}.wav`).asset);
+var triplet_srcs = Array(9).fill(0).map((x, k) => import_shaku.default.assets.loadSound(`sounds/t${k + 1}.wav`).asset);
 await import_shaku.default.assets.waitForAll();
 var vegetable_textures = {
   0: await import_shaku.default.assets.loadTexture("imgs/carrot.png"),
@@ -8230,6 +8231,7 @@ card_back.size.mulSelf(CONFIG.card_scaling * 62 / 42);
 var note_sound = new SoundCollection(note_srcs);
 var note_high_sound = new SoundCollection(note_high_srcs);
 var note_low_sound = new SoundCollection(note_low_srcs);
+var triplet_sounds = triplet_srcs.map((x) => import_shaku.default.sfx.createSound(x));
 var board = Grid2D.init(CONFIG.board_w, CONFIG.board_h, (i, j) => null);
 var hand = [];
 for (let k = 0; k < CONFIG.veg_hand_size; k++) {
@@ -8337,7 +8339,7 @@ function tileUnderPos(pos) {
     return null;
   return new import_vector2.default(i, j);
 }
-function createScoreSprite(card, index, crate_pos, extra_delay) {
+function createScoreSprite(card, index, crate_pos, extra_delay, first) {
   let veg_sprite = new import_sprite.default(vegetable_textures[card.vegetable]);
   veg_sprite.setSourceFromSpritesheet(import_vector2.default.zero, import_vector2.default.one, 1, true);
   veg_sprite.origin.set(0.5, 1);
@@ -8355,6 +8357,10 @@ function createScoreSprite(card, index, crate_pos, extra_delay) {
   }).duration(0.4).delay((extra_delay + 0.1 + index * 0.1) / 0.4).play().then(() => {
     particles = particles.filter((x) => x != veg_sprite);
     refreshPoints(1);
+    if (first) {
+      console.log("card.count: ", card.count);
+      import_shaku.default.sfx.play(triplet_srcs[card.count + 1]);
+    }
   });
   sizeBumpAnim(card.sprite, extra_delay + 0.1 + index * 0.1);
 }
@@ -8363,15 +8369,18 @@ function activateCard(pos, crate_pos, extra_delay) {
   if (connected_group.length > 1 || crate_pos !== null && connected_group.length >= 1) {
     connected_group.forEach((p, index) => {
       let tile = board.getV(p);
-      createScoreSprite(tile, index, crate_pos, extra_delay);
+      createScoreSprite(tile, index, crate_pos, extra_delay, index === 0);
       if (tile.count >= 1) {
         new import_animator.default(tile.sprite).to({ "rotation": tile.sprite.rotation * (-0.9 + Math.random() * 0.2) }).delay((extra_delay + 0.1 + index * 0.1) / 0.05).duration(0.05).play().then(() => {
           tile.count -= 1;
           updateCountSprite(tile);
         });
       } else {
+        floating_cards.push(tile);
+        tile.count -= 1;
         new import_animator.default(tile.sprite).to({ "position": tile.sprite.position.add(0, import_shaku.default.gfx.canvas.height) }).smoothDamp(true).duration(0.35).delay((extra_delay + 0.3 + index * 0.1) / 0.35).play().then(() => {
           board.setV(p, null);
+          floating_cards = floating_cards.filter((x) => x !== tile);
         });
       }
     });
@@ -8556,7 +8565,7 @@ function step() {
         cursor_spr = cursor_default_spr;
         grabbing_card = null;
       } else {
-        grabbing_card.sprite.rotation = Math.sin((import_shaku.default.gameTime.elapsed - hover_offset) * 5) * 0.1;
+        grabbing_card.sprite.rotation = Math.sin((import_shaku.default.gameTime.elapsed - hover_offset) * 5) * 0.05;
         if (hovering_tile) {
           let board_pos = new import_vector2.default(CONFIG.board_x + CONFIG.card_w * hovering_tile.x, CONFIG.board_y + CONFIG.card_h * hovering_tile.y);
           grabbing_card.sprite.position.copy(
