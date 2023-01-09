@@ -10890,6 +10890,7 @@ function step() {
       if (hovering_tile && board.getV(hovering_tile))
         hovering_tile = null;
       if (hovering_tile && (last_hovering_tile === null || !last_hovering_tile.equals(hovering_tile))) {
+        note_sound.play();
         if (grabbing_card.type === "veg") {
           board.setV(hovering_tile, grabbing_card);
           let connected_group = connectedGroup(hovering_tile);
@@ -10904,6 +10905,7 @@ function step() {
         } else if (grabbing_card.type === "crate") {
         }
       }
+      last_hovering_tile = hovering_tile;
       if (import_shaku.default.input.mouseReleased()) {
         let card_index = hand.indexOf(grabbing_card);
         if (hovering_tile) {

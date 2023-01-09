@@ -312,6 +312,7 @@ function createScoreSprite(card: Exclude<VegCard, false>, index: number, crate_p
         particles = particles.filter(x => x != veg_sprite);
     });
 
+    // note_sound.play();
     sizeBumpAnim(card.sprite, extra_delay + .1 + index * .1);
 }
 
@@ -440,6 +441,7 @@ function step() {
             let hovering_tile = tileUnderPos(Shaku.input.mousePosition);
             if (hovering_tile && board.getV(hovering_tile)) hovering_tile = null;
             if (hovering_tile && (last_hovering_tile === null || !last_hovering_tile.equals(hovering_tile))) {
+                note_sound.play();
                 if (grabbing_card.type === "veg") {
                     board.setV(hovering_tile, grabbing_card);
                     let connected_group = connectedGroup(hovering_tile);
@@ -455,6 +457,7 @@ function step() {
                     // todo: juice for crates
                 }
             }
+            last_hovering_tile = hovering_tile;
             if (Shaku.input.mouseReleased()) {
                 // stop grabbing
                 let card_index = hand.indexOf(grabbing_card);
