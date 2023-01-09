@@ -3475,20 +3475,20 @@ var require_effect = __commonJS({
             throw new Error(`Uniform '${uniform}' have illegal value type '${uniformData.type}'!`);
           }
           if (uniformData.type === UniformTypes.Matrix) {
-            (function(_this, name, location, method) {
+            (function(_this, name, location2, method) {
               _this.uniforms[name] = (mat) => {
-                _this._gl[method](location, false, mat);
+                _this._gl[method](location2, false, mat);
               };
             })(this, uniform, uniformLocation, uniformData.type);
           } else if (uniformData.type === UniformTypes.Texture) {
-            (function(_this, name, location, method) {
+            (function(_this, name, location2, method) {
               _this.uniforms[name] = (texture, index) => {
                 index = index || 0;
                 const glTexture = texture.texture || texture;
                 const textureCode = _this._gl["TEXTURE" + (index || 0)];
                 _this._gl.activeTexture(textureCode);
                 _this._gl.bindTexture(_this._gl.TEXTURE_2D, glTexture);
-                _this._gl.uniform1i(location, index || 0);
+                _this._gl.uniform1i(location2, index || 0);
                 if (texture.filter) {
                   _setTextureFilter(_this._gl, texture.filter);
                 }
@@ -3498,9 +3498,9 @@ var require_effect = __commonJS({
               };
             })(this, uniform, uniformLocation, uniformData.type);
           } else {
-            (function(_this, name, location, method) {
+            (function(_this, name, location2, method) {
               _this.uniforms[name] = (v1, v2, v3, v4) => {
-                _this._gl[method](location, v1, v2, v3, v4);
+                _this._gl[method](location2, v1, v2, v3, v4);
               };
             })(this, uniform, uniformLocation, uniformData.type);
           }
@@ -3518,14 +3518,14 @@ var require_effect = __commonJS({
             throw new Error(`Attribute named '${attr}' was not found in shader code!`);
           }
           let attributeData = this.attributeTypes[attr];
-          (function(_this, name, location, data) {
+          (function(_this, name, location2, data) {
             _this.attributes[name] = (buffer) => {
               if (buffer) {
                 _this._gl.bindBuffer(_this._gl.ARRAY_BUFFER, buffer);
-                _this._gl.vertexAttribPointer(location, data.size, _this._gl[data.type] || _this._gl.FLOAT, data.normalize || false, data.stride || 0, data.offset || 0);
-                _this._gl.enableVertexAttribArray(location);
+                _this._gl.vertexAttribPointer(location2, data.size, _this._gl[data.type] || _this._gl.FLOAT, data.normalize || false, data.stride || 0, data.offset || 0);
+                _this._gl.enableVertexAttribArray(location2);
               } else {
-                _this._gl.disableVertexAttribArray(location);
+                _this._gl.disableVertexAttribArray(location2);
               }
             };
           })(this, attr, attributeLocation, attributeData);
@@ -8273,7 +8273,7 @@ function updateCountSprite(card) {
   }
 }
 function addCard() {
-  if (Math.random() < 0.1 && hand.every((x) => x.type !== "crate")) {
+  if (Math.random() < 0.2 && hand.every((x) => x.type !== "crate")) {
     addCrateCard();
   } else {
     addVegCard();
@@ -8469,15 +8469,16 @@ function makeUnwaterVersion(card) {
 }
 var in_intro = true;
 var last_hovering_tile = null;
-var resetting = false;
-var resetting_spr = new import_sprite.default(import_shaku.default.gfx.whiteTexture);
-resetting_spr.size.copy(import_shaku.default.gfx.getCanvasSize());
-resetting_spr.color = import_color.default.fromHex("#327345");
+var reseting_spr = new import_sprite.default(import_shaku.default.gfx.whiteTexture);
+reseting_spr.size.copy(import_shaku.default.gfx.getCanvasSize());
+reseting_spr.origin.set(0, 0);
+reseting_spr.color = import_color.default.fromHex("#327345");
+var reseting_state = "NONE";
 function step() {
   import_shaku.default.startFrame();
   import_shaku.default.gfx.drawSprite(background_sprite);
   cursor_spr.position.copy(import_shaku.default.input.mousePosition);
-  if (!in_intro) {
+  if (!in_intro && reseting_state === "NONE") {
     if (!grabbing_card) {
       let cur_hovering_card = hand.find((card) => posOverCard(import_shaku.default.input.mousePosition, card)) || null;
       if (!hovering_card) {
@@ -8590,8 +8591,15 @@ function step() {
               board_full = false;
             }
           });
-          if (board_full) {
-            resetting = true;
+          if (board_full && reseting_state === "NONE") {
+            reseting_state = "FADING_OUT";
+            reseting_spr.color.a = 0;
+            console.log("starting to fade out...");
+            new import_animator.default(reseting_spr).to({ "color.a": 1 }).duration(1).play().then(() => {
+              setTimeout(() => {
+                location.reload();
+              }, 1e3);
+            });
           }
         }, 2e3);
       } else {
@@ -8655,7 +8663,7 @@ function step() {
       in_intro = false;
       setTimeout(() => {
         document.getElementById("intro").style.display = "none";
-      }, 1e3);
+      }, 1500);
     }
   }
   import_shaku.default.gfx.useEffect(pixel_effect);
@@ -8676,7 +8684,10 @@ function step() {
   particles.forEach((x) => {
     import_shaku.default.gfx.drawSprite(x);
   });
-  if (resetting) {
+  if (reseting_state !== "NONE") {
+    import_shaku.default.gfx.useEffect(null);
+    import_shaku.default.gfx.drawSprite(reseting_spr);
+    import_shaku.default.gfx.useEffect(pixel_effect);
     import_shaku.default.gfx.drawGroup(points_spr, false);
   }
   cursor_spr.position.copy(import_shaku.default.input.mousePosition);

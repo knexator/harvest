@@ -292,7 +292,7 @@ function updateCountSprite(card: Card) {
 
 function addCard() {
     // todo: remove hack
-    if (Math.random() < .1 && hand.every(x => x.type !== "crate")) {
+    if (Math.random() < .2 && hand.every(x => x.type !== "crate")) {
         addCrateCard();
     } else {
         addVegCard();
@@ -455,7 +455,7 @@ function refreshPoints(amount: number) {
     points = mod(points + amount, Math.pow(10, CONFIG.score_digits));
     if (CONFIG.max_count < 8 && points > next_threshold) {
         CONFIG.max_count += 1;
-        next_threshold = 40;
+        next_threshold += 40;
     }
     let digits = (("000000" + points).slice(-CONFIG.score_digits)).split('').map(x => Number(x));
     for (let k = 0; k < CONFIG.score_digits; k++) {
@@ -520,11 +520,11 @@ let in_intro = true;
 
 let last_hovering_tile: Vector2 | null = null;
 
-let resetting = false;
-let resetting_spr = new Sprite(Shaku.gfx.whiteTexture);
-resetting_spr.size.copy(Shaku.gfx.getCanvasSize());
-resetting_spr.color = Color.fromHex("#327345");
-let resseting_time_left = 0;
+let reseting_spr = new Sprite(Shaku.gfx.whiteTexture);
+reseting_spr.size.copy(Shaku.gfx.getCanvasSize());
+reseting_spr.origin.set(0, 0);
+reseting_spr.color = Color.fromHex("#327345");
+let reseting_state: "NONE" | "FADING_OUT" | "FADING_IN" = "NONE";
 
 // do a single main loop step and request the next step
 function step() {
@@ -533,7 +533,7 @@ function step() {
     Shaku.gfx.drawSprite(background_sprite);
 
     cursor_spr.position.copy(Shaku.input.mousePosition);
-    if (!in_intro) {
+    if (!in_intro && reseting_state === "NONE") {
         if (!grabbing_card) {
             let cur_hovering_card = hand.find(card => posOverCard(Shaku.input.mousePosition, card)) || null;
             if (!hovering_card) {
@@ -657,8 +657,16 @@ function step() {
                             board_full = false;
                         }
                     });
-                    if (board_full) {
-                        resetting = true;
+                    if (board_full && reseting_state === "NONE") {
+                        reseting_state = "FADING_OUT";
+                        // @ts-ignore
+                        reseting_spr.color.a = 0;
+                        console.log("starting to fade out...")
+                        new Animator(reseting_spr).to({ "color.a": 1 }).duration(1).play().then(() => {
+                            setTimeout(() => {
+                                location.reload();
+                            }, 1000);
+                        });
                     }
                 }, 2000);
             } else {
@@ -733,7 +741,7 @@ function step() {
             in_intro = false;
             setTimeout(() => {
                 document.getElementById("intro")!.style.display = "none";
-            }, 1000);
+            }, 1500);
         }
         /*} else {
             intro_time_left = moveTowards(intro_time_left, 0, Shaku.gameTime.delta);
@@ -779,7 +787,11 @@ function step() {
         Shaku.gfx.drawSprite(x);
     });
 
-    if (resetting) {
+    if (reseting_state !== "NONE") {
+        // @ts-ignore
+        Shaku.gfx.useEffect(null);
+        Shaku.gfx.drawSprite(reseting_spr);
+        Shaku.gfx.useEffect(pixel_effect);
         Shaku.gfx.drawGroup(points_spr, false);
     }
 
