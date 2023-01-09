@@ -8133,11 +8133,11 @@ var PixelEffect = class extends import_effect.default {
 var CONFIG = {
   board_w: 6,
   board_h: 5,
-  max_count: 5,
+  max_count: 4,
   veg_hand_size: 5,
   n_types: 3,
   card_scaling: 1.15,
-  pixel_scaling: 4,
+  pixel_scaling: 3,
   card_w: 62 + 12,
   card_h: 92 + 12,
   card_x: 640,
@@ -8424,7 +8424,7 @@ function onPlaceCard(pos) {
 var next_threshold = 40;
 function refreshPoints(amount) {
   points = mod(points + amount, Math.pow(10, CONFIG.score_digits));
-  if (CONFIG.max_count < 9 && points > next_threshold) {
+  if (CONFIG.max_count < 8 && points > next_threshold) {
     CONFIG.max_count += 1;
     next_threshold = 40;
   }
@@ -8663,6 +8663,9 @@ function step() {
     import_shaku.default.gfx.drawGroup(card.sprite, false);
   });
   floating_cards.forEach((card) => import_shaku.default.gfx.drawGroup(card.sprite, false));
+  if (grabbing_card) {
+    import_shaku.default.gfx.drawGroup(grabbing_card.sprite, false);
+  }
   particles.forEach((x) => {
     import_shaku.default.gfx.drawSprite(x);
   });
