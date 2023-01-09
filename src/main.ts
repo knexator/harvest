@@ -26,11 +26,11 @@ const CONFIG = {
 
     card_scaling: 1.15,
     pixel_scaling: 4,
-    card_w: 62 + 10,
-    card_h: 92 + 10,
-    card_x: 740,
-    board_x: 60,
-    board_y: 60,
+    card_w: 62, // + 10,
+    card_h: 92, // + 10,
+    card_x: 640,
+    board_x: 80,
+    board_y: 102 + 10,
 };
 CONFIG.card_w *= CONFIG.card_scaling;
 CONFIG.card_h *= CONFIG.card_scaling;
@@ -50,7 +50,7 @@ await Shaku.init([Shaku.assets, Shaku.sfx, Shaku.gfx, Shaku.input]);
 
 // add shaku's canvas to document and set resolution to 800x600
 document.body.appendChild(Shaku!.gfx!.canvas);
-Shaku.gfx!.setResolution(800, 600, true);
+Shaku.gfx!.setResolution(700, 660, true);
 Shaku.gfx!.centerCanvas();
 // Shaku.gfx!.maximizeCanvasSize(false, false);
 
@@ -70,7 +70,7 @@ enum Veg {
 }
 
 // type VegTile = false | { vegetable: Veg, count: number, sprite: Sprite };
-type VegCard = { type: "veg", vegetable: Veg, count: number, sprite: SpritesGroup };
+type VegCard = { type: "veg", vegetable: Veg, count: number, sprite: SpritesGroup, watered: boolean };
 type CrateCard = { type: "crate", count: number, sprite: SpritesGroup };
 
 type Card = VegCard | CrateCard;
@@ -111,6 +111,8 @@ class SoundCollection {
 }
 
 // @ts-ignore
+let background_texture = Shaku.assets.loadTexture("imgs/full_board.png").asset;
+// @ts-ignore
 let note_srcs = ["sounds/note1.wav", "sounds/note2.wav", "sounds/note3.wav", "sounds/note4.wav", "sounds/note5.wav"].map(x => Shaku.assets.loadSound(x).asset);
 // @ts-ignore
 let note_high_srcs = Array(7).fill(0).map((x, k) => Shaku.assets.loadSound(`sounds/h${k + 1}.wav`).asset);
@@ -138,6 +140,15 @@ const vegetable_card_textures: Record<Veg, TextureAsset> = {
     5: await Shaku.assets.loadTexture("imgs/card_pumpkin.png"),
 }
 
+const vegetable_water_card_textures: Record<Veg, TextureAsset> = {
+    0: await Shaku.assets.loadTexture("imgs/water_carrot.png"),
+    1: await Shaku.assets.loadTexture("imgs/water_kale.png"),
+    2: await Shaku.assets.loadTexture("imgs/water_pumpkin.png"),
+    3: await Shaku.assets.loadTexture("imgs/water_pumpkin.png"),
+    4: await Shaku.assets.loadTexture("imgs/water_pumpkin.png"),
+    5: await Shaku.assets.loadTexture("imgs/water_pumpkin.png"),
+}
+
 // const card_texture = await Shaku.assets.loadTexture("imgs/card.png");
 // const card_carrot_texture = await Shaku.assets.loadTexture("imgs/card_carrot.png");
 
@@ -145,7 +156,7 @@ const cursor_default = await Shaku.assets.loadTexture("imgs/cursor_02.png");
 const cursor_hover = await Shaku.assets.loadTexture("imgs/hand_open_02.png");
 const cursor_grabbed = await Shaku.assets.loadTexture("imgs/hand_closed_02.png");
 
-const hole_texture = await Shaku.assets.loadTexture("imgs/soil_00.png");
+// const hole_texture = await Shaku.assets.loadTexture("imgs/soil_00.png");
 // const crate_texture = await Shaku.assets.loadTexture("imgs/crate_base.png");
 const crate_card_texture = await Shaku.assets.loadTexture("imgs/card_crate.png");
 
@@ -208,13 +219,13 @@ let grabbing_card: Card | null = null;
 
 let card_grab_offset = new Vector2(-20, -40).mul(CONFIG.card_scaling);
 
-let board_floor = Grid2D.init<Sprite>(CONFIG.board_w, CONFIG.board_h, (i, j) => {
-    let res = new Sprite(hole_texture);
-    res.size.mulSelf(CONFIG.pixel_scaling);
-    res.position.set(CONFIG.board_x + i * CONFIG.card_w, CONFIG.board_y + j * CONFIG.card_h + CONFIG.pixel_scaling * 4);
-    res.static = true;
-    return res;
-});
+// let board_floor = Grid2D.init<Sprite>(CONFIG.board_w, CONFIG.board_h, (i, j) => {
+//     let res = new Sprite(hole_texture);
+//     res.size.mulSelf(CONFIG.pixel_scaling);
+//     res.position.set(CONFIG.board_x + i * CONFIG.card_w, CONFIG.board_y + j * CONFIG.card_h + CONFIG.pixel_scaling * 4);
+//     res.static = true;
+//     return res;
+// });
 
 const DIRS = [Vector2.right, Vector2.down, Vector2.left, Vector2.up];
 
@@ -238,14 +249,16 @@ let points_pos = new Vector2(Shaku.gfx.canvas.width * .75, Shaku.gfx.canvas.heig
 let points_spr: SpritesGroup;
 refreshPoints();
 
-const background_color = Color.fromHex("#E4A672");
+let background_sprite = new Sprite(background_texture);
+background_sprite.origin.set(0, 0);
 
 function baseCardPos(index: number) {
     return new Vector2(CONFIG.card_x, CONFIG.board_y + CONFIG.card_h * index);
 }
 
 function addCard() {
-    if (Math.random() < .1 && hand.every(x => x.type !== "crate")) {
+    // todo: remove hack
+    if (Math.random() < .991 && hand.every(x => x.type !== "crate")) {
         addCrateCard();
     } else {
         addVegCard();
@@ -287,6 +300,7 @@ function addVegCard() {
         vegetable: randomVeg(),
         count: randint(CONFIG.max_count) + 1,
         sprite: new SpritesGroup(),
+        watered: false,
     }
     let card_spr = new Sprite(vegetable_card_textures[new_veg_card.vegetable]);
     new_veg_card.sprite.add(card_spr);
@@ -384,7 +398,7 @@ function onPlaceCard(pos: Vector2) {
             if (seen.some(x => x === cur_pos)) continue;
             let tile = board.getV(cur_pos, null);
             if (tile && tile.count === placed.count) {
-                let new_seen = activateCard(cur_pos, pos, delay);
+                let new_seen = activateCard(cur_pos, placed.sprite.position, delay);
                 if (new_seen.length > 1) {
                     new Animator(placed.sprite)
                         .to({ "rotation": rotation * (-.9 + Math.random() * .2) })
@@ -434,6 +448,28 @@ function sizeBumpAnim(spr: SpritesGroup, delay: number = 0) {
         .duration(.07).delay(delay / .07).play();
 }
 
+function makeWaterVersion(card: VegCard) {
+    card.count += 1;
+    card.watered = true;
+    updateCountSprite(card);
+    card.sprite._sprites[0].texture = vegetable_water_card_textures[card.vegetable];
+    sizeBumpAnim(card.sprite);
+    setTimeout(() => {
+        card.sprite._sprites[0].texture = vegetable_card_textures[card.vegetable];
+    }, 100)
+}
+
+function makeUnwaterVersion(card: VegCard) {
+    card.count -= 1;
+    card.watered = false;
+    updateCountSprite(card);
+    // card.sprite._sprites[0].texture = vegetable_water_card_textures[card.vegetable];
+    sizeBumpAnim(card.sprite);
+    // setTimeout(() => {
+    //     card.sprite._sprites[0].texture = vegetable_card_textures[card.vegetable];
+    // }, 100)
+}
+
 // let intro_time_left = -1;
 let in_intro = true;
 
@@ -443,7 +479,7 @@ let last_hovering_tile: Vector2 | null = null;
 function step() {
     // start a new frame and clear screen
     Shaku.startFrame();
-    Shaku.gfx!.clear(background_color);
+    Shaku.gfx.drawSprite(background_sprite);
 
     cursor_spr.position.copy(Shaku.input.mousePosition);
     if (!in_intro) {
@@ -477,16 +513,25 @@ function step() {
         } else {
             let hovering_tile = tileUnderPos(Shaku.input.mousePosition);
             if (hovering_tile && board.getV(hovering_tile)) hovering_tile = null;
+
+            if (grabbing_card.type === "veg" && grabbing_card.watered && (hovering_tile === null || (hovering_tile.x !== 0 && hovering_tile.y !== 0))) {
+                // unwater
+                makeUnwaterVersion(grabbing_card);
+            }
+
             if (hovering_tile) {
                 if (last_hovering_tile === null || !last_hovering_tile.equals(hovering_tile)) {
                     note_low_sound.play(.3);
+                    if (grabbing_card.type === "veg" && !grabbing_card.watered && (hovering_tile.x === 0 || hovering_tile.y === 0)) {
+                        // water
+                        makeWaterVersion(grabbing_card);
+                    }
                 }
                 if (grabbing_card.type === "veg") {
                     board.setV(hovering_tile, grabbing_card);
                     let connected_group = connectedGroup(hovering_tile);
                     if (connected_group.length > 1) {
                         connected_group.forEach((p, index) => {
-                            console.log("hola");
                             let tile = board.getV(p) as Exclude<VegCard, false>;
                             tile.sprite.rotation += Math.sin(index * .7 + Shaku.gameTime.elapsed * 10) * Shaku.gameTime.delta * .5;
                             tile.sprite.rotation *= .99;
@@ -619,7 +664,7 @@ function step() {
 
     // RENDERING
     Shaku.gfx.useEffect(pixel_effect);
-    board_floor.forEach((i, j, spr) => Shaku.gfx.drawSprite(spr));
+    // board_floor.forEach((i, j, spr) => Shaku.gfx.drawSprite(spr));
     board.forEach((i, j, tile) => {
         if (tile) {
             Shaku.gfx.drawGroup(tile.sprite, false);

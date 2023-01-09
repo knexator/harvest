@@ -119,7 +119,7 @@ var require_color = __commonJS({
   "../Shaku/lib/utils/color.js"(exports, module) {
     "use strict";
     var MathHelper = require_math_helper();
-    var Color3 = class {
+    var Color2 = class {
       constructor(r, g, b, a) {
         this.set(r, g, b, a);
       }
@@ -181,7 +181,7 @@ var require_color = __commonJS({
       }
       get asHex() {
         if (!this._asHex) {
-          this._asHex = "#" + Color3.componentToHex(this.r * 255) + Color3.componentToHex(this.g * 255) + Color3.componentToHex(this.b * 255) + Color3.componentToHex(this.a * 255);
+          this._asHex = "#" + Color2.componentToHex(this.r * 255) + Color2.componentToHex(this.g * 255) + Color2.componentToHex(this.b * 255) + Color2.componentToHex(this.a * 255);
         }
         return this._asHex;
       }
@@ -193,10 +193,10 @@ var require_color = __commonJS({
         if (!parsed) {
           throw new Error("Invalid hex value to parse!");
         }
-        return new Color3(parsed.r, parsed.g, parsed.b, 1);
+        return new Color2(parsed.r, parsed.g, parsed.b, 1);
       }
       static fromDecimal(val, includeAlpha) {
-        let ret = new Color3(1, 1, 1, 1);
+        let ret = new Color2(1, 1, 1, 1);
         if (includeAlpha) {
           ret.a = (val & 255) / 255;
           val = val >> 8;
@@ -208,7 +208,7 @@ var require_color = __commonJS({
         ret.r = (val & 255) / 255;
       }
       static fromDict(data) {
-        return new Color3(
+        return new Color2(
           data.r !== void 0 ? data.r : 1,
           data.g !== void 0 ? data.g : 1,
           data.b !== void 0 ? data.b : 1,
@@ -244,7 +244,7 @@ var require_color = __commonJS({
         return [this.r, this.g, this.b, this.a];
       }
       clone() {
-        return new Color3(this.r, this.g, this.b, this.a);
+        return new Color2(this.r, this.g, this.b, this.a);
       }
       string() {
         return this.r + "," + this.g + "," + this.b + "," + this.a;
@@ -253,10 +253,10 @@ var require_color = __commonJS({
         return this.r == 0 && this.g == 0 && this.b == 0;
       }
       static random(includeAlpha) {
-        return new Color3(Math.random(), Math.random(), Math.random(), includeAlpha ? Math.random() : 1);
+        return new Color2(Math.random(), Math.random(), Math.random(), includeAlpha ? Math.random() : 1);
       }
       static fromBytesArray(bytes) {
-        return new Color3(bytes[0] / 255, bytes[1] / 255, bytes[2] / 255, bytes[3] !== void 0 ? bytes[3] / 255 : 1);
+        return new Color2(bytes[0] / 255, bytes[1] / 255, bytes[2] / 255, bytes[3] !== void 0 ? bytes[3] / 255 : 1);
       }
       get isTransparentBlack() {
         return this._r == this._g && this._g == this._b && this._b == this._a && this._a == 0;
@@ -269,7 +269,7 @@ var require_color = __commonJS({
       }
       static lerp(p1, p2, a) {
         let lerpScalar = MathHelper.lerp;
-        return new Color3(
+        return new Color2(
           lerpScalar(p1.r, p2.r, a),
           lerpScalar(p1.g, p2.g, a),
           lerpScalar(p1.b, p2.b, a),
@@ -424,7 +424,7 @@ var require_color = __commonJS({
       if (colorNameToHex.hasOwnProperty(key)) {
         colorValue = hexToColor(colorNameToHex[key]);
         (function(_colValue) {
-          Object.defineProperty(Color3, key, {
+          Object.defineProperty(Color2, key, {
             get: function() {
               return _colValue.clone();
             }
@@ -436,14 +436,14 @@ var require_color = __commonJS({
     var key;
     var colorKeys = Object.keys(colorNameToHex);
     Object.freeze(colorKeys);
-    Object.defineProperty(Color3, "transparent", {
+    Object.defineProperty(Color2, "transparent", {
       get: function() {
-        return new Color3(0, 0, 0, 0);
+        return new Color2(0, 0, 0, 0);
       }
     });
-    Object.defineProperty(Color3, "transwhite", {
+    Object.defineProperty(Color2, "transwhite", {
       get: function() {
-        return new Color3(1, 1, 1, 0);
+        return new Color2(1, 1, 1, 0);
       }
     });
     function hexToColor(hex) {
@@ -460,9 +460,9 @@ var require_color = __commonJS({
       if (!components) {
         throw new Error("Invalid hex value to parse!");
       }
-      return new Color3(components.r, components.g, components.b, 1);
+      return new Color2(components.r, components.g, components.b, 1);
     }
-    module.exports = Color3;
+    module.exports = Color2;
   }
 });
 
@@ -1281,7 +1281,7 @@ var require_texture_asset = __commonJS({
     var Asset = require_asset();
     var { TextureFilterMode, TextureFilterModes: TextureFilterModes2 } = require_texture_filter_modes();
     var { TextureWrapMode, TextureWrapModes } = require_texture_wrap_modes();
-    var Color3 = require_color();
+    var Color2 = require_color();
     var Vector22 = require_vector2();
     var _logger = require_logger().getLogger("assets");
     var gl = null;
@@ -1463,7 +1463,7 @@ var require_texture_asset = __commonJS({
         let ctx = this._ctxForPixelData;
         ctx.drawImage(this._image, x, y, 1, 1, 0, 0, 1, 1);
         let pixelData = ctx.getImageData(0, 0, 1, 1).data;
-        return Color3.fromBytesArray(pixelData);
+        return Color2.fromBytesArray(pixelData);
       }
       get valid() {
         return Boolean(this._texture);
@@ -3070,13 +3070,13 @@ var require_utils = __commonJS({
 var require_vertex = __commonJS({
   "../Shaku/lib/gfx/vertex.js"(exports, module) {
     "use strict";
-    var { Vector2: Vector22, Color: Color3 } = require_utils();
+    var { Vector2: Vector22, Color: Color2 } = require_utils();
     var Matrix = require_matrix();
     var Vertex = class {
       constructor(position, textureCoord, color) {
         this.position = position || Vector22.zero;
         this.textureCoord = textureCoord || Vector22.zero;
-        this.color = color || Color3.white;
+        this.color = color || Color2.white;
       }
       transform(matrix) {
         return this;
@@ -3436,7 +3436,7 @@ var require_effect = __commonJS({
   "../Shaku/lib/gfx/effects/effect.js"(exports, module) {
     "use strict";
     var TextureAsset = require_texture_asset();
-    var Color3 = require_color();
+    var Color2 = require_color();
     var Rectangle = require_rectangle();
     var { TextureFilterMode, TextureFilterModes: TextureFilterModes2 } = require_texture_filter_modes();
     var { TextureWrapMode, TextureWrapModes } = require_texture_wrap_modes();
@@ -3924,7 +3924,7 @@ var require_effects = __commonJS({
 var require_mesh = __commonJS({
   "../Shaku/lib/gfx/mesh.js"(exports, module) {
     "use strict";
-    var { Color: Color3 } = require_utils();
+    var { Color: Color2 } = require_utils();
     var Mesh = class {
       constructor(positions, textureCoords, colorsBuffer, indices, indicesCount) {
         this.positions = positions;
@@ -3932,7 +3932,7 @@ var require_mesh = __commonJS({
         this.colors = colorsBuffer;
         this.indices = indices;
         this.indicesCount = indicesCount;
-        this.__color = new Color3(-1, -1, -1, -1);
+        this.__color = new Color2(-1, -1, -1, -1);
         Object.freeze(this);
       }
       overrideColors(gl, color) {
@@ -4084,7 +4084,7 @@ var require_sprite = __commonJS({
   "../Shaku/lib/gfx/sprite.js"(exports, module) {
     "use strict";
     var TextureAsset = require_texture_asset();
-    var Color3 = require_color();
+    var Color2 = require_color();
     var Rectangle = require_rectangle();
     var Vector22 = require_vector2();
     var Vector32 = require_vector3();
@@ -4105,7 +4105,7 @@ var require_sprite = __commonJS({
         this.rotation = 0;
         this.origin = new Vector22(0.5, 0.5);
         this.skew = new Vector22(0, 0);
-        this.color = Color3.white;
+        this.color = Color2.white;
         this.static = false;
       }
       setSourceFromSpritesheet(index, spritesCount, margin, setSize) {
@@ -4166,7 +4166,7 @@ var require_sprite = __commonJS({
 var require_sprites_group = __commonJS({
   "../Shaku/lib/gfx/sprites_group.js"(exports, module) {
     "use strict";
-    var Color3 = require_color();
+    var Color2 = require_color();
     var Vector22 = require_vector2();
     var Matrix = require_matrix();
     var Sprite2 = require_sprite();
@@ -4575,7 +4575,7 @@ var require_text_alignments = __commonJS({
 var require_sprite_batch = __commonJS({
   "../Shaku/lib/gfx/sprite_batch.js"(exports, module) {
     "use strict";
-    var { Rectangle, Color: Color3 } = require_utils();
+    var { Rectangle, Color: Color2 } = require_utils();
     var Vector22 = require_vector2();
     var Vertex = require_vertex();
     var { BlendModes: BlendModes2 } = require_blend_modes();
@@ -4906,7 +4906,7 @@ var require_gfx = __commonJS({
   "../Shaku/lib/gfx/gfx.js"(exports, module) {
     "use strict";
     var IManager = require_manager();
-    var Color3 = require_color();
+    var Color2 = require_color();
     var { BlendMode, BlendModes: BlendModes2 } = require_blend_modes();
     var Rectangle = require_rectangle();
     var { Effect: Effect2, BasicEffect, MsdfFontEffect } = require_effects();
@@ -4927,7 +4927,7 @@ var require_gfx = __commonJS({
     var SpriteBatch = require_sprite_batch();
     var Vector32 = require_vector3();
     var Vertex = require_vertex();
-    var _whiteColor = Color3.white;
+    var _whiteColor = Color2.white;
     var _logger = require_logger().getLogger("gfx");
     var Gfx = class extends IManager {
       constructor() {
@@ -5214,7 +5214,7 @@ var require_gfx = __commonJS({
           throw new Error("Font texture is invalid!");
         }
         alignment = alignment || TextAlignments.Left;
-        color = color || Color3.black;
+        color = color || Color2.black;
         fontSize = fontSize || fontTexture.fontSize;
         marginFactor = marginFactor || Vector22.one;
         let scale = fontSize / fontTexture.fontSize;
@@ -5259,7 +5259,7 @@ var require_gfx = __commonJS({
               sprite.origin.set(0.5, 0.5);
             }
             sprite.position.copy(position).addSelf(fontTexture.getPositionOffset(character).mul(scale));
-            if (color instanceof Color3) {
+            if (color instanceof Color2) {
               sprite.color.copy(color);
             } else {
               sprite.color = [];
@@ -5618,7 +5618,7 @@ var require_gfx = __commonJS({
       }
       clear(color) {
         this.presentBufferedData();
-        color = color || Color3.black;
+        color = color || Color2.black;
         this._gl.clearColor(color.r, color.g, color.b, color.a);
         this._gl.clear(this._gl.COLOR_BUFFER_BIT | this._gl.DEPTH_BUFFER_BIT);
       }
@@ -6898,7 +6898,7 @@ var require_assets2 = __commonJS({
 var require_shape = __commonJS({
   "../Shaku/lib/collision/shapes/shape.js"(exports, module) {
     "use strict";
-    var Color3 = require_color();
+    var Color2 = require_color();
     var Rectangle = require_rectangle();
     var Vector22 = require_vector2();
     var CollisionWorld = require_collision_world();
@@ -6969,7 +6969,7 @@ var require_shape = __commonJS({
         }
       }
     };
-    var defaultDebugColors = [Color3.red, Color3.blue, Color3.green, Color3.yellow, Color3.purple, Color3.teal, Color3.brown, Color3.orange, Color3.khaki, Color3.darkcyan, Color3.cornflowerblue, Color3.darkgray, Color3.chocolate, Color3.aquamarine, Color3.cadetblue, Color3.magenta, Color3.seagreen, Color3.pink, Color3.olive, Color3.violet];
+    var defaultDebugColors = [Color2.red, Color2.blue, Color2.green, Color2.yellow, Color2.purple, Color2.teal, Color2.brown, Color2.orange, Color2.khaki, Color2.darkcyan, Color2.cornflowerblue, Color2.darkgray, Color2.chocolate, Color2.aquamarine, Color2.cadetblue, Color2.magenta, Color2.seagreen, Color2.pink, Color2.olive, Color2.violet];
     module.exports = CollisionShape;
   }
 });
@@ -7146,7 +7146,7 @@ var require_circle2 = __commonJS({
 var require_collision_world = __commonJS({
   "../Shaku/lib/collision/collision_world.js"(exports, module) {
     "use strict";
-    var Color3 = require_color();
+    var Color2 = require_color();
     var Vector22 = require_vector2();
     var Circle = require_circle();
     var CollisionTestResult = require_result();
@@ -7382,11 +7382,11 @@ var require_collision_world = __commonJS({
       debugDraw(gridColor, gridHighlitColor, opacity, camera) {
         this._performUpdates();
         if (!gridColor) {
-          gridColor = Color3.black;
+          gridColor = Color2.black;
           gridColor.a *= 0.75;
         }
         if (!gridHighlitColor) {
-          gridHighlitColor = Color3.red;
+          gridHighlitColor = Color2.red;
           gridHighlitColor.a *= 0.75;
         }
         if (opacity === void 0) {
@@ -8525,15 +8525,15 @@ var possibleConstructorReturn = function(self, call) {
   return call && (typeof call === "object" || typeof call === "function") ? call : self;
 };
 var Color = function() {
-  function Color3() {
-    classCallCheck(this, Color3);
+  function Color2() {
+    classCallCheck(this, Color2);
     this.__state = interpret.apply(this, arguments);
     if (this.__state === false) {
       throw new Error("Failed to interpret color arguments");
     }
     this.__state.a = this.__state.a || 1;
   }
-  createClass(Color3, [{
+  createClass(Color2, [{
     key: "toString",
     value: function toString() {
       return colorToString(this);
@@ -8549,7 +8549,7 @@ var Color = function() {
       return this.__state.conversion.write(this);
     }
   }]);
-  return Color3;
+  return Color2;
 }();
 function defineRGBComponent(target, component, componentHexIndex) {
   Object.defineProperty(target, component, {
@@ -10454,7 +10454,6 @@ function updateDisplays(controllerArray) {
 var GUI$1 = GUI;
 
 // src/main.ts
-var import_color = __toESM(require_color());
 var import_sprite = __toESM(require_sprite());
 var import_sprites_group = __toESM(require_sprites_group());
 
@@ -10598,11 +10597,11 @@ var CONFIG = {
   n_types: 3,
   card_scaling: 1.15,
   pixel_scaling: 4,
-  card_w: 62 + 10,
-  card_h: 92 + 10,
-  card_x: 740,
-  board_x: 60,
-  board_y: 60
+  card_w: 62,
+  card_h: 92,
+  card_x: 640,
+  board_x: 80,
+  board_y: 102 + 10
 };
 CONFIG.card_w *= CONFIG.card_scaling;
 CONFIG.card_h *= CONFIG.card_scaling;
@@ -10616,7 +10615,7 @@ gui.add(CONFIG, "n_types", 2, 5, 1);
 import_shaku.default.input.setTargetElement(() => import_shaku.default.gfx.canvas);
 await import_shaku.default.init([import_shaku.default.assets, import_shaku.default.sfx, import_shaku.default.gfx, import_shaku.default.input]);
 document.body.appendChild(import_shaku.default.gfx.canvas);
-import_shaku.default.gfx.setResolution(800, 600, true);
+import_shaku.default.gfx.setResolution(700, 660, true);
 import_shaku.default.gfx.centerCanvas();
 function randomVeg() {
   return [0 /* CARROT */, 1 /* KALE */, 2 /* PUMPKIN */, 3 /* CAULIFLOWER */, 4 /* CABBAGE */, 5 /* POTATO */][randint(CONFIG.n_types)];
@@ -10647,6 +10646,7 @@ var SoundCollection = class {
     }
   }
 };
+var background_texture = import_shaku.default.assets.loadTexture("imgs/full_board.png").asset;
 var note_srcs = ["sounds/note1.wav", "sounds/note2.wav", "sounds/note3.wav", "sounds/note4.wav", "sounds/note5.wav"].map((x) => import_shaku.default.assets.loadSound(x).asset);
 var note_high_srcs = Array(7).fill(0).map((x, k) => import_shaku.default.assets.loadSound(`sounds/h${k + 1}.wav`).asset);
 var note_low_srcs = Array(7).fill(0).map((x, k) => import_shaku.default.assets.loadSound(`sounds/l${k + 1}.wav`).asset);
@@ -10667,10 +10667,17 @@ var vegetable_card_textures = {
   4: await import_shaku.default.assets.loadTexture("imgs/card_pumpkin.png"),
   5: await import_shaku.default.assets.loadTexture("imgs/card_pumpkin.png")
 };
+var vegetable_water_card_textures = {
+  0: await import_shaku.default.assets.loadTexture("imgs/water_carrot.png"),
+  1: await import_shaku.default.assets.loadTexture("imgs/water_kale.png"),
+  2: await import_shaku.default.assets.loadTexture("imgs/water_pumpkin.png"),
+  3: await import_shaku.default.assets.loadTexture("imgs/water_pumpkin.png"),
+  4: await import_shaku.default.assets.loadTexture("imgs/water_pumpkin.png"),
+  5: await import_shaku.default.assets.loadTexture("imgs/water_pumpkin.png")
+};
 var cursor_default = await import_shaku.default.assets.loadTexture("imgs/cursor_02.png");
 var cursor_hover = await import_shaku.default.assets.loadTexture("imgs/hand_open_02.png");
 var cursor_grabbed = await import_shaku.default.assets.loadTexture("imgs/hand_closed_02.png");
-var hole_texture = await import_shaku.default.assets.loadTexture("imgs/soil_00.png");
 var crate_card_texture = await import_shaku.default.assets.loadTexture("imgs/card_crate.png");
 var numbers_texture = await import_shaku.default.assets.loadTexture("imgs/numbers.png");
 var score_texture = await import_shaku.default.assets.loadTexture("imgs/score.png");
@@ -10686,13 +10693,6 @@ var points = 0;
 var hovering_card = null;
 var grabbing_card = null;
 var card_grab_offset = new import_vector2.default(-20, -40).mul(CONFIG.card_scaling);
-var board_floor = Grid2D.init(CONFIG.board_w, CONFIG.board_h, (i, j) => {
-  let res = new import_sprite.default(hole_texture);
-  res.size.mulSelf(CONFIG.pixel_scaling);
-  res.position.set(CONFIG.board_x + i * CONFIG.card_w, CONFIG.board_y + j * CONFIG.card_h + CONFIG.pixel_scaling * 4);
-  res.static = true;
-  return res;
-});
 var DIRS = [import_vector2.default.right, import_vector2.default.down, import_vector2.default.left, import_vector2.default.up];
 var hover_offset = 0;
 var pixel_effect = import_shaku.default.gfx.createEffect(PixelEffect);
@@ -10707,12 +10707,13 @@ cursor_grabbed_spr.size.mulSelf(CONFIG.pixel_scaling);
 var cursor_spr = cursor_default_spr;
 var points_pos = new import_vector2.default(import_shaku.default.gfx.canvas.width * 0.75, import_shaku.default.gfx.canvas.height * 0.9);
 refreshPoints();
-var background_color = import_color.default.fromHex("#E4A672");
+var background_sprite = new import_sprite.default(background_texture);
+background_sprite.origin.set(0, 0);
 function baseCardPos(index) {
   return new import_vector2.default(CONFIG.card_x, CONFIG.board_y + CONFIG.card_h * index);
 }
 function addCard() {
-  if (Math.random() < 0.1 && hand.every((x) => x.type !== "crate")) {
+  if (Math.random() < 0.991 && hand.every((x) => x.type !== "crate")) {
     addCrateCard();
   } else {
     addVegCard();
@@ -10748,7 +10749,8 @@ function addVegCard() {
     type: "veg",
     vegetable: randomVeg(),
     count: randint(CONFIG.max_count) + 1,
-    sprite: new import_sprites_group.default()
+    sprite: new import_sprites_group.default(),
+    watered: false
   };
   let card_spr = new import_sprite.default(vegetable_card_textures[new_veg_card.vegetable]);
   new_veg_card.sprite.add(card_spr);
@@ -10835,7 +10837,7 @@ function onPlaceCard(pos) {
         continue;
       let tile = board.getV(cur_pos, null);
       if (tile && tile.count === placed.count) {
-        let new_seen = activateCard(cur_pos, pos, delay);
+        let new_seen = activateCard(cur_pos, placed.sprite.position, delay);
         if (new_seen.length > 1) {
           new import_animator.default(placed.sprite).to({ "rotation": rotation * (-0.9 + Math.random() * 0.2) }).delay(delay / 0.05).duration(0.05).play();
           rotation *= -1;
@@ -10875,11 +10877,27 @@ function sizeBumpAnim(spr, delay = 0) {
   let original_scale = spr.scale.clone();
   new import_animator.default(spr).from({ "scale": original_scale.mul(1.1) }).to({ "scale": original_scale }).duration(0.07).delay(delay / 0.07).play();
 }
+function makeWaterVersion(card) {
+  card.count += 1;
+  card.watered = true;
+  updateCountSprite(card);
+  card.sprite._sprites[0].texture = vegetable_water_card_textures[card.vegetable];
+  sizeBumpAnim(card.sprite);
+  setTimeout(() => {
+    card.sprite._sprites[0].texture = vegetable_card_textures[card.vegetable];
+  }, 100);
+}
+function makeUnwaterVersion(card) {
+  card.count -= 1;
+  card.watered = false;
+  updateCountSprite(card);
+  sizeBumpAnim(card.sprite);
+}
 var in_intro = true;
 var last_hovering_tile = null;
 function step() {
   import_shaku.default.startFrame();
-  import_shaku.default.gfx.clear(background_color);
+  import_shaku.default.gfx.drawSprite(background_sprite);
   cursor_spr.position.copy(import_shaku.default.input.mousePosition);
   if (!in_intro) {
     if (!grabbing_card) {
@@ -10911,16 +10929,21 @@ function step() {
       let hovering_tile = tileUnderPos(import_shaku.default.input.mousePosition);
       if (hovering_tile && board.getV(hovering_tile))
         hovering_tile = null;
+      if (grabbing_card.type === "veg" && grabbing_card.watered && (hovering_tile === null || hovering_tile.x !== 0 && hovering_tile.y !== 0)) {
+        makeUnwaterVersion(grabbing_card);
+      }
       if (hovering_tile) {
         if (last_hovering_tile === null || !last_hovering_tile.equals(hovering_tile)) {
           note_low_sound.play(0.3);
+          if (grabbing_card.type === "veg" && !grabbing_card.watered && (hovering_tile.x === 0 || hovering_tile.y === 0)) {
+            makeWaterVersion(grabbing_card);
+          }
         }
         if (grabbing_card.type === "veg") {
           board.setV(hovering_tile, grabbing_card);
           let connected_group = connectedGroup(hovering_tile);
           if (connected_group.length > 1) {
             connected_group.forEach((p, index) => {
-              console.log("hola");
               let tile = board.getV(p);
               tile.sprite.rotation += Math.sin(index * 0.7 + import_shaku.default.gameTime.elapsed * 10) * import_shaku.default.gameTime.delta * 0.5;
               tile.sprite.rotation *= 0.99;
@@ -11027,7 +11050,6 @@ function step() {
     }
   }
   import_shaku.default.gfx.useEffect(pixel_effect);
-  board_floor.forEach((i, j, spr) => import_shaku.default.gfx.drawSprite(spr));
   board.forEach((i, j, tile) => {
     if (tile) {
       import_shaku.default.gfx.drawGroup(tile.sprite, false);
