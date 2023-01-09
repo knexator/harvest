@@ -452,8 +452,13 @@ function onPlaceCard(pos: Vector2) {
     }
 }
 
+let next_threshold = 40;
 function refreshPoints(amount: number) {
     points = mod(points + amount, Math.pow(10, CONFIG.score_digits));
+    if (CONFIG.max_count < 9 && points > next_threshold) {
+        CONFIG.max_count += 1;
+        next_threshold = 40;
+    }
     let digits = points.toString().split('').map(x => Number(x));
     for (let k = 0; k < CONFIG.score_digits; k++) {
         let cur = points_spr._sprites[k + 1] as Sprite;
