@@ -292,7 +292,8 @@ function updateCountSprite(card: Card) {
 
 function addCard() {
     // todo: remove hack
-    if (Math.random() < .2 && hand.every(x => x.type !== "crate")) {
+    // if (Math.random() < .2 && hand.every(x => x.type !== "crate")) {
+    if (Math.random() < .1) {
         addCrateCard();
     } else {
         addVegCard();
@@ -662,13 +663,13 @@ function step() {
                         // @ts-ignore
                         reseting_spr.color.a = 0;
                         console.log("starting to fade out...")
-                        new Animator(reseting_spr).to({ "color.a": 1 }).duration(1).play().then(() => {
+                        new Animator(reseting_spr).to({ "color.a": 1 }).duration(2).play().then(() => {
                             setTimeout(() => {
                                 location.reload();
-                            }, 1000);
+                            }, 2000);
                         });
                     }
-                }, 2000);
+                }, 4000);
             } else {
                 // grabbing_card.sprite.rotation = Math.sin((Shaku.gameTime.elapsed - hover_offset) * 5) * .05;
                 // grabbing_card.sprite.position.copy(Shaku.input.mousePosition.add(card_grab_offset));

@@ -8273,7 +8273,7 @@ function updateCountSprite(card) {
   }
 }
 function addCard() {
-  if (Math.random() < 0.2 && hand.every((x) => x.type !== "crate")) {
+  if (Math.random() < 0.1) {
     addCrateCard();
   } else {
     addVegCard();
@@ -8417,7 +8417,7 @@ function refreshPoints(amount) {
   points = mod(points + amount, Math.pow(10, CONFIG.score_digits));
   if (CONFIG.max_count < 8 && points > next_threshold) {
     CONFIG.max_count += 1;
-    next_threshold = 40;
+    next_threshold += 40;
   }
   let digits = ("000000" + points).slice(-CONFIG.score_digits).split("").map((x) => Number(x));
   for (let k = 0; k < CONFIG.score_digits; k++) {
@@ -8595,13 +8595,13 @@ function step() {
             reseting_state = "FADING_OUT";
             reseting_spr.color.a = 0;
             console.log("starting to fade out...");
-            new import_animator.default(reseting_spr).to({ "color.a": 1 }).duration(1).play().then(() => {
+            new import_animator.default(reseting_spr).to({ "color.a": 1 }).duration(2).play().then(() => {
               setTimeout(() => {
                 location.reload();
-              }, 1e3);
+              }, 2e3);
             });
           }
-        }, 2e3);
+        }, 4e3);
       } else {
         if (hovering_tile) {
           let board_pos = new import_vector2.default(CONFIG.board_x + CONFIG.card_w * hovering_tile.x, CONFIG.board_y + CONFIG.card_h * hovering_tile.y);
