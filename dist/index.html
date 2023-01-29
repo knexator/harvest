@@ -30,6 +30,26 @@
             text-align: center;
             font-size: 6vw;
             line-height: 20vh;
+            color: wheat;
+        }
+
+        #slide_down_2 {
+            /* background-color: #733E39; */
+            position: absolute;
+            /* height: 10vh; */
+            width: 100vw;
+            top: 90vh;
+
+            text-align: center;
+            font-size: 4vw;
+            /* line-height: 20vh; */
+            color: wheat;
+            pointer-events: all;
+            user-select: none;
+        }
+
+        #slide_down_2 a {
+            color: antiquewhite;
         }
 
         #slide_up.animating {
@@ -41,6 +61,12 @@
         #slide_down.animating {
             animation-name: intro_slide_down;
             animation-duration: 1s;
+            animation-fill-mode: forwards;
+        }
+
+        #slide_down_2.animating {
+            animation-name: intro_slide_down;
+            animation-duration: .6s;
             animation-fill-mode: forwards;
         }
 
@@ -62,6 +88,9 @@
     <div id="intro" style="z-index: 1; position: absolute; pointer-events: none;">
         <div id="slide_up"><img src="imgs/thumbnail.png" width="472px" height="375px"></div>
         <div id="slide_down">Loading...</div>
+        <div id="slide_down_2">A game by <a href="https://twitter.com/pinchazumos" target="_blank">pinchazumos</a>, <a
+                href="https://twitter.com/knexator" target="_blank">knexator</a>, & <a href="https://woffels.itch.io/"
+                target="_blank">Woffeson</a></div>
     </div>
     <script src="js/main.js" type="module"></script>
 </body>
